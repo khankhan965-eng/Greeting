@@ -18,22 +18,43 @@ interface PublicPageProps {
 }
 
 function getEffectiveShopStatus(data: ShopData): "open" | "closed" {
-  // 1. Manual/Override status check first
-  if (data.status === "closed") return "closed"
+  const manualStatus = data.status // 'open' or 'closed'
 
-  // 2. Early Closing Override (Priority 1)
-  if (data.isEarlyClosing && data.earlyClosingTime && isPastTime(data.earlyClosingTime)) {
-    return "closed"
-  }
+  // 1. Early Closing Override (Priority 1)
+  // If admin set an early closing time and that time has passed, force closed.
+  if (data.isEarlyClosing && data.earlyClosingTime) {
+    const pastTime = isPastTime(data.earlyClosingTime)
+    console.log("[v0] Early Close Check:", {
+      enabled: data.isEarlyClosing,
+      time: data.earlyClosingTime,
+      isPast: pastTime,
+    })
 
-  // 3. Daily Auto Schedule (Priority 2)
-  if (data.enableAutoSchedule && data.dailyOpenTime && data.dailyCloseTime) {
-    if (!isWithinTimeRange(data.dailyOpenTime, data.dailyCloseTime)) {
+    if (pastTime) {
       return "closed"
     }
   }
 
-  return "open"
+  // 2. Daily Auto Schedule (Priority 2)
+  if (data.enableAutoSchedule && data.dailyOpenTime && data.dailyCloseTime) {
+    const isInsideSchedule = isWithinTimeRange(data.dailyOpenTime, data.dailyCloseTime)
+
+    // If we are outside schedule, the shop is CLOSED unless the admin manually toggled it OPEN
+    // (Manual override usually implies intent to stay open despite schedule)
+    if (!isInsideSchedule && manualStatus !== "open") {
+      return "closed"
+    }
+
+    // If we are inside schedule, the shop is OPEN unless the admin manually toggled it CLOSED
+    if (isInsideSchedule && manualStatus === "closed") {
+      return "closed"
+    }
+
+    return isInsideSchedule ? "open" : "closed"
+  }
+
+  // 3. Fallback to Manual Status (if no auto-schedule)
+  return manualStatus
 }
 
 export default function PublicPage({ onAdminClick }: PublicPageProps) {

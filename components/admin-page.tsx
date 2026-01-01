@@ -30,6 +30,10 @@ export default function AdminPage({ isAuthenticated, onAuthenticated, onLogout }
             isEarlyClosing: statusData.isEarlyClosing,
             earlyClosingTime: statusData.earlyClosingTime,
             earlyClosingReason: statusData.earlyClosingReason,
+            enableAutoSchedule: statusData.enableAutoSchedule,
+            dailyOpenTime: statusData.dailyOpenTime,
+            dailyCloseTime: statusData.dailyCloseTime,
+            offers: statusData.offers,
           })
         } else {
           setData(getDefaultData())
