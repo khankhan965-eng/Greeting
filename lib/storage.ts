@@ -4,12 +4,6 @@ export const getDefaultData = (): ShopData => ({
   shopName: "RTC (Ratlam Tea Cafe)",
   status: "open",
   closeMessage: "Sorry, RTC is closed at the moment. We'll be back soon!",
-  // <CHANGE> Added default daily schedule configuration
-  enableAutoSchedule: false,
-  dailyOpenTime: "09:00 AM",
-  dailyCloseTime: "10:00 PM",
-  // <CHANGE> Added default empty offers array
-  offers: [],
   products: [
     {
       id: 1,

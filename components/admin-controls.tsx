@@ -1,11 +1,10 @@
 "use client"
 
 import type React from "react"
-import OfferManager from "./offer-manager"
+import ScheduleManager from "./schedule-manager"
 import { useState } from "react"
 import { Download, Upload, Info } from "lucide-react"
 import ShopStatusControl from "./shop-status-control"
-import EarlyClosingControl from "./early-closing-control"
 import ProductManager from "./product-manager"
 import PreviewPane from "./preview-pane"
 import ChangePassword from "./change-password"
@@ -139,11 +138,7 @@ export default function AdminControls({
           <ChangePassword />
 
           <ShopStatusControl data={data} onDataUpdate={onDataUpdate} />
-
-          <EarlyClosingControl data={data} onDataUpdate={onDataUpdate} />
-
-          <OfferManager data={data} onDataUpdate={onDataUpdate} />
-
+          <ScheduleManager />
           <ProductManager data={data} onDataUpdate={onDataUpdate} />
 
           {/* Export/Import */}
