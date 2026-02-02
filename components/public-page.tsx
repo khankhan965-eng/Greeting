@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { AlertCircle } from "lucide-react"
 import Header from "./header"
 import ProductGrid from "./product-grid"
 import Footer from "./footer"
@@ -10,23 +11,13 @@ import WhatsAppButton from "./whatsapp-button"
 import Toast from "./toast"
 import type { ShopData } from "@/types"
 import { getDefaultData } from "@/lib/storage"
-import { isShopOpenToday, getNextOpeningTime } from "@/lib/schedule-utils"
 
 interface PublicPageProps {
   onAdminClick: () => void
 }
 
-interface TimeSlot {
-  id: string
-  day_of_week: number
-  opening_time: string
-  closing_time: string
-  is_active: boolean
-}
-
 export default function PublicPage({ onAdminClick }: PublicPageProps) {
   const [data, setData] = useState<ShopData | null>(null)
-  const [schedules, setSchedules] = useState<TimeSlot[]>([])
   const [showUnavailable, setShowUnavailable] = useState(false)
   const [showSplash, setShowSplash] = useState(true)
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null)
@@ -34,42 +25,23 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
   useEffect(() => {
     const fetchServerData = async () => {
       try {
-        const [statusResponse, scheduleResponse] = await Promise.all([fetch("/api/status"), fetch("/api/schedule")])
-
-        let statusData = { status: "open", closeMessage: "" }
-        let scheduleData = []
-
-        if (statusResponse.ok) {
-          statusData = await statusResponse.json()
+        const response = await fetch("/api/status")
+        if (response.ok) {
+          const statusData = await response.json()
+          // Use server status + default product data
+          setData({
+            ...getDefaultData(),
+            status: statusData.status,
+            closeMessage: statusData.closeMessage,
+            isEarlyClosing: statusData.isEarlyClosing,
+            earlyClosingTime: statusData.earlyClosingTime,
+            earlyClosingReason: statusData.earlyClosingReason,
+          })
+        } else {
+          setData(getDefaultData())
         }
-
-        if (scheduleResponse.ok) {
-          const data = await scheduleResponse.json()
-          scheduleData = data.schedules || []
-        }
-
-        let finalStatus = statusData.status
-        if (scheduleData.length > 0) {
-          const isOpen = isShopOpenToday(scheduleData)
-          if (!isOpen) {
-            const nextOpening = getNextOpeningTime(scheduleData)
-            finalStatus = "closed"
-            statusData.closeMessage = nextOpening
-              ? `Closed. Will open at ${nextOpening}`
-              : "Closed. Check schedule for opening times"
-          } else {
-            finalStatus = "open"
-          }
-        }
-
-        setSchedules(scheduleData)
-        setData({
-          ...getDefaultData(),
-          status: finalStatus,
-          closeMessage: statusData.closeMessage,
-        })
       } catch (error) {
-        console.error("[v0] Failed to fetch data:", error)
+        console.error("[v0] Failed to fetch status:", error)
         setData(getDefaultData())
       }
     }
@@ -81,7 +53,7 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
     }, 1500)
 
     return () => clearTimeout(splashTimer)
-  }, [])
+  }, []) // Runs ONLY once on initial page load
 
   if (!data) return <div className="p-4">Loading...</div>
 
@@ -105,6 +77,20 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
 
       <div className="min-h-screen flex flex-col bg-background">
         <Header shopName={data.shopName} status={data.status} onAdminClick={onAdminClick} />
+
+        {data.isEarlyClosing && data.earlyClosingTime && data.earlyClosingReason && (
+          <div className="bg-gradient-to-r from-orange-400 to-orange-600 text-white px-4 py-3 shadow-md">
+            <div className="max-w-6xl mx-auto flex items-start gap-3">
+              <AlertCircle className="flex-shrink-0 mt-0.5" size={20} />
+              <div>
+                <p className="font-bold text-lg">Early Closing Alert!</p>
+                <p className="text-sm">
+                  Shop will close early today at <strong>{data.earlyClosingTime}</strong> - {data.earlyClosingReason}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Main Content */}
         <div className="flex-1 max-w-6xl mx-auto w-full px-4 py-8 sm:py-12">
