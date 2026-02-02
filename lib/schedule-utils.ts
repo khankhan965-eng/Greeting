@@ -3,25 +3,18 @@
 
 const IST_TIMEZONE = "Asia/Kolkata"
 
-// Parse time string (HH:MM AM/PM or HH:MM) to minutes since midnight
+// Parse time string (HH:MM 24-hour format) to minutes since midnight
 export function parseTimeToMinutes(timeStr: string): number {
   if (!timeStr) return 0
 
-  const cleanStr = timeStr.trim().toUpperCase()
-  const timeRegex = /^(\d{1,2}):(\d{2})\s*(AM|PM)?$/
+  const cleanStr = timeStr.trim()
+  const timeRegex = /^(\d{2}):(\d{2})$/
   const match = cleanStr.match(timeRegex)
 
   if (!match) return 0
 
-  let hours = Number.parseInt(match[1], 10)
+  const hours = Number.parseInt(match[1], 10)
   const minutes = Number.parseInt(match[2], 10)
-  const period = match[3]
-
-  // Handle 12-hour format
-  if (period) {
-    if (period === "PM" && hours !== 12) hours += 12
-    if (period === "AM" && hours === 12) hours = 0
-  }
 
   return hours * 60 + minutes
 }

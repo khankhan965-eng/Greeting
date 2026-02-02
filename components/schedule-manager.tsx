@@ -20,9 +20,14 @@ export default function ScheduleManager() {
   const [loading, setLoading] = useState(true)
   const [newSlot, setNewSlot] = useState({
     day_of_week: 0,
-    opening_time: "09:00 AM",
-    closing_time: "10:00 PM",
+    opening_time: "09:00",
+    closing_time: "22:00",
   })
+
+  const [openingHour, setOpeningHour] = useState("09")
+  const [openingMinute, setOpeningMinute] = useState("00")
+  const [closingHour, setClosingHour] = useState("22")
+  const [closingMinute, setClosingMinute] = useState("00")
 
   useEffect(() => {
     fetchSchedules()
@@ -53,7 +58,11 @@ export default function ScheduleManager() {
 
       if (response.ok) {
         fetchSchedules()
-        setNewSlot({ day_of_week: 0, opening_time: "09:00 AM", closing_time: "10:00 PM" })
+        setNewSlot({ day_of_week: 0, opening_time: "09:00", closing_time: "22:00" })
+        setOpeningHour("09")
+        setOpeningMinute("00")
+        setClosingHour("22")
+        setClosingMinute("00")
       }
     } catch (error) {
       console.error("Error adding slot:", error)
@@ -105,7 +114,7 @@ export default function ScheduleManager() {
       <div className="mb-6">
         <h3 className="text-lg font-semibold mb-4">Add New Time Slot</h3>
         <Card className="p-4 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
             <select
               value={newSlot.day_of_week}
               onChange={(e) => setNewSlot({ ...newSlot, day_of_week: Number.parseInt(e.target.value) })}
@@ -117,19 +126,74 @@ export default function ScheduleManager() {
                 </option>
               ))}
             </select>
-            <Input
-              type="text"
-              placeholder="Opening time (e.g., 09:00 AM)"
-              value={newSlot.opening_time}
-              onChange={(e) => setNewSlot({ ...newSlot, opening_time: e.target.value })}
-            />
-            <Input
-              type="text"
-              placeholder="Closing time (e.g., 10:00 PM)"
-              value={newSlot.closing_time}
-              onChange={(e) => setNewSlot({ ...newSlot, closing_time: e.target.value })}
-            />
-            <Button onClick={handleAddSlot} className="bg-red-600 hover:bg-red-700">
+
+            {/* Opening Time */}
+            <div className="flex gap-1">
+              <select
+                value={openingHour}
+                onChange={(e) => {
+                  setOpeningHour(e.target.value)
+                  setNewSlot({ ...newSlot, opening_time: `${e.target.value}:${openingMinute}` })
+                }}
+                className="border rounded px-2 py-2 flex-1 text-center"
+              >
+                {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0")).map((h) => (
+                  <option key={h} value={h}>
+                    {h}
+                  </option>
+                ))}
+              </select>
+              <span className="flex items-center">:</span>
+              <select
+                value={openingMinute}
+                onChange={(e) => {
+                  setOpeningMinute(e.target.value)
+                  setNewSlot({ ...newSlot, opening_time: `${openingHour}:${e.target.value}` })
+                }}
+                className="border rounded px-2 py-2 flex-1 text-center"
+              >
+                {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0")).map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Closing Time */}
+            <div className="flex gap-1">
+              <select
+                value={closingHour}
+                onChange={(e) => {
+                  setClosingHour(e.target.value)
+                  setNewSlot({ ...newSlot, closing_time: `${e.target.value}:${closingMinute}` })
+                }}
+                className="border rounded px-2 py-2 flex-1 text-center"
+              >
+                {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0")).map((h) => (
+                  <option key={h} value={h}>
+                    {h}
+                  </option>
+                ))}
+              </select>
+              <span className="flex items-center">:</span>
+              <select
+                value={closingMinute}
+                onChange={(e) => {
+                  setClosingMinute(e.target.value)
+                  setNewSlot({ ...newSlot, closing_time: `${closingHour}:${e.target.value}` })
+                }}
+                className="border rounded px-2 py-2 flex-1 text-center"
+              >
+                {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0")).map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <Button onClick={handleAddSlot} className="bg-red-600 hover:bg-red-700 col-span-1">
               Add Slot
             </Button>
           </div>
