@@ -8,7 +8,10 @@ export interface Product {
 
 export interface ShopData {
   shopName: string
-  status: "open" | "closed" // updated code here
+  status: "open" | "closed"
   closeMessage: string
+  isEarlyClosing?: boolean
+  earlyClosingTime?: string
+  earlyClosingReason?: string
   products: Product[]
 }
