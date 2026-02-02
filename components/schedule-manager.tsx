@@ -20,8 +20,8 @@ export default function ScheduleManager() {
   const [loading, setLoading] = useState(true)
   const [newSlot, setNewSlot] = useState({
     day_of_week: 0,
-    opening_time: "09:00 AM",
-    closing_time: "10:00 PM",
+    opening_time: "09:00",
+    closing_time: "22:00",
   })
 
   useEffect(() => {
@@ -53,7 +53,7 @@ export default function ScheduleManager() {
 
       if (response.ok) {
         fetchSchedules()
-        setNewSlot({ day_of_week: 0, opening_time: "09:00 AM", closing_time: "10:00 PM" })
+        setNewSlot({ day_of_week: 0, opening_time: "09:00", closing_time: "22:00" })
       }
     } catch (error) {
       console.error("Error adding slot:", error)
@@ -118,16 +118,16 @@ export default function ScheduleManager() {
               ))}
             </select>
             <Input
-              type="text"
-              placeholder="Opening time (e.g., 09:00 AM)"
+              type="time"
               value={newSlot.opening_time}
               onChange={(e) => setNewSlot({ ...newSlot, opening_time: e.target.value })}
+              className="border rounded px-3 py-2"
             />
             <Input
-              type="text"
-              placeholder="Closing time (e.g., 10:00 PM)"
+              type="time"
               value={newSlot.closing_time}
               onChange={(e) => setNewSlot({ ...newSlot, closing_time: e.target.value })}
+              className="border rounded px-3 py-2"
             />
             <Button onClick={handleAddSlot} className="bg-red-600 hover:bg-red-700">
               Add Slot
