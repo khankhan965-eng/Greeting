@@ -8,6 +8,7 @@ import ShopStatusControl from "./shop-status-control"
 import ProductManager from "./product-manager"
 import PreviewPane from "./preview-pane"
 import ChangePassword from "./change-password"
+import { AdminOffers } from "./admin-offers"
 import type { ShopData } from "@/types"
 
 interface AdminControlsProps {
@@ -24,6 +25,7 @@ export default function AdminControls({
   onCloseInstructions,
 }: AdminControlsProps) {
   const [activeTab, setActiveTab] = useState<"manage" | "preview">("manage")
+  const [activeSubTab, setActiveSubTab] = useState<"status" | "products" | "schedule" | "offers" | "password">("status")
 
   const handleExport = () => {
     const storedAuth = localStorage.getItem("rtc_auth_state")
@@ -134,29 +136,85 @@ export default function AdminControls({
       </div>
 
       {activeTab === "manage" ? (
-        <div className="space-y-8">
-          <ChangePassword />
+        <div>
+          {/* Sub-tabs for manage section */}
+          <div className="flex gap-2 mb-6 border-b border-border overflow-x-auto">
+            <button
+              onClick={() => setActiveSubTab("status")}
+              className={`px-4 py-2 font-medium text-sm whitespace-nowrap transition-colors border-b-2 ${
+                activeSubTab === "status"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Status
+            </button>
+            <button
+              onClick={() => setActiveSubTab("schedule")}
+              className={`px-4 py-2 font-medium text-sm whitespace-nowrap transition-colors border-b-2 ${
+                activeSubTab === "schedule"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Schedule
+            </button>
+            <button
+              onClick={() => setActiveSubTab("products")}
+              className={`px-4 py-2 font-medium text-sm whitespace-nowrap transition-colors border-b-2 ${
+                activeSubTab === "products"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Products
+            </button>
+            <button
+              onClick={() => setActiveSubTab("offers")}
+              className={`px-4 py-2 font-medium text-sm whitespace-nowrap transition-colors border-b-2 ${
+                activeSubTab === "offers"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Offers
+            </button>
+            <button
+              onClick={() => setActiveSubTab("password")}
+              className={`px-4 py-2 font-medium text-sm whitespace-nowrap transition-colors border-b-2 ${
+                activeSubTab === "password"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Password
+            </button>
+          </div>
 
-          <ShopStatusControl data={data} onDataUpdate={onDataUpdate} />
-          <ScheduleManager />
-          <ProductManager data={data} onDataUpdate={onDataUpdate} />
+          <div className="space-y-8">
+            {activeSubTab === "status" && <ShopStatusControl data={data} onDataUpdate={onDataUpdate} />}
+            {activeSubTab === "schedule" && <ScheduleManager />}
+            {activeSubTab === "products" && <ProductManager data={data} onDataUpdate={onDataUpdate} />}
+            {activeSubTab === "offers" && <AdminOffers />}
+            {activeSubTab === "password" && <ChangePassword />}
 
-          {/* Export/Import */}
-          <div className="bg-card rounded-lg p-6 border border-border">
-            <h3 className="text-xl font-bold text-foreground mb-4">Backup & Restore</h3>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <button
-                onClick={handleExport}
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-              >
-                <Download size={18} />
-                Export Data
-              </button>
-              <label className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 transition-colors cursor-pointer">
-                <Upload size={18} />
-                Import Data
-                <input type="file" accept=".json" onChange={handleImport} className="hidden" />
-              </label>
+            {/* Export/Import - always visible */}
+            <div className="bg-card rounded-lg p-6 border border-border">
+              <h3 className="text-xl font-bold text-foreground mb-4">Backup & Restore</h3>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  onClick={handleExport}
+                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  <Download size={18} />
+                  Export Data
+                </button>
+                <label className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 transition-colors cursor-pointer">
+                  <Upload size={18} />
+                  Import Data
+                  <input type="file" accept=".json" onChange={handleImport} className="hidden" />
+                </label>
+              </div>
             </div>
           </div>
         </div>

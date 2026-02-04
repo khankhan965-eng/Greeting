@@ -8,7 +8,8 @@ import SplashScreen from "./splash-screen"
 import OfflineIndicator from "./offline-indicator"
 import WhatsAppButton from "./whatsapp-button"
 import Toast from "./toast"
-import type { ShopData } from "@/types"
+import { OfferPopup } from "./offer-popup"
+import type { ShopData, Offer } from "@/types"
 import { getDefaultData } from "@/lib/storage"
 import { isShopOpenToday, getNextOpeningTime } from "@/lib/schedule-utils"
 
@@ -30,14 +31,21 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
   const [showUnavailable, setShowUnavailable] = useState(false)
   const [showSplash, setShowSplash] = useState(true)
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null)
+  const [offers, setOffers] = useState<Offer[]>([])
+  const [visibleOffer, setVisibleOffer] = useState<Offer | null>(null)
 
   useEffect(() => {
     const fetchServerData = async () => {
       try {
-        const [statusResponse, scheduleResponse] = await Promise.all([fetch("/api/status"), fetch("/api/schedule")])
+        const [statusResponse, scheduleResponse, offersResponse] = await Promise.all([
+          fetch("/api/status"),
+          fetch("/api/schedule"),
+          fetch("/api/offers"),
+        ])
 
         let statusData = { status: "open", closeMessage: "" }
         let scheduleData = []
+        let offersData = []
 
         if (statusResponse.ok) {
           statusData = await statusResponse.json()
@@ -46,6 +54,10 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
         if (scheduleResponse.ok) {
           const data = await scheduleResponse.json()
           scheduleData = data.schedules || []
+        }
+
+        if (offersResponse.ok) {
+          offersData = await offersResponse.json()
         }
 
         let finalStatus = statusData.status
@@ -63,11 +75,26 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
         }
 
         setSchedules(scheduleData)
+        setOffers(offersData)
         setData({
           ...getDefaultData(),
           status: finalStatus,
           closeMessage: statusData.closeMessage,
         })
+
+        // Show first active offer
+        if (offersData.length > 0) {
+          const now = new Date()
+          const activeOffer = offersData.find(
+            (o: Offer) =>
+              new Date(o.start_datetime) <= now &&
+              new Date(o.end_datetime) >= now &&
+              o.active
+          )
+          if (activeOffer) {
+            setVisibleOffer(activeOffer)
+          }
+        }
       } catch (error) {
         console.error("[v0] Failed to fetch data:", error)
         setData(getDefaultData())
@@ -102,6 +129,10 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
       <OfflineIndicator />
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+      {visibleOffer && (
+        <OfferPopup offer={visibleOffer} onClose={() => setVisibleOffer(null)} />
+      )}
 
       <div className="min-h-screen flex flex-col bg-background">
         <Header shopName={data.shopName} status={data.status} onAdminClick={onAdminClick} />
