@@ -9,6 +9,8 @@ import { Input } from "./ui/input"
 export function AdminOffers() {
   const [offers, setOffers] = useState<Offer[]>([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
   const [newOffer, setNewOffer] = useState({
     title: "",
     description: "",
@@ -39,12 +41,37 @@ export function AdminOffers() {
   }
 
   const handleAddOffer = async () => {
-    if (!newOffer.title || !newOffer.description) {
-      alert("Please fill in all fields")
+    setError(null)
+    setSuccess(null)
+
+    // Validation
+    if (!newOffer.title.trim()) {
+      setError("Offer title is required")
+      return
+    }
+    if (!newOffer.description.trim()) {
+      setError("Offer description is required")
+      return
+    }
+    if (!newOffer.start_datetime) {
+      setError("Start date/time is required")
+      return
+    }
+    if (!newOffer.end_datetime) {
+      setError("End date/time is required")
+      return
+    }
+
+    const startTime = new Date(newOffer.start_datetime)
+    const endTime = new Date(newOffer.end_datetime)
+    if (endTime <= startTime) {
+      setError("End date/time must be after start date/time")
       return
     }
 
     setLoading(true)
+    console.log("[v0] Submitting offer:", newOffer)
+
     try {
       const res = await fetch("/api/offers", {
         method: "POST",
@@ -52,20 +79,35 @@ export function AdminOffers() {
         body: JSON.stringify(newOffer),
       })
 
-      if (res.ok) {
-        fetchOffers()
-        setNewOffer({
-          title: "",
-          description: "",
-          start_datetime: "",
-          end_datetime: "",
-          frequency: "always",
-          show_timer: false,
-          active: true,
-        })
+      console.log("[v0] API response status:", res.status)
+      const responseData = await res.json()
+      console.log("[v0] API response data:", responseData)
+
+      if (!res.ok) {
+        setError(responseData.error || "Failed to create offer")
+        return
       }
+
+      setSuccess("Offer created successfully!")
+      await fetchOffers()
+      
+      // Reset form
+      setNewOffer({
+        title: "",
+        description: "",
+        start_datetime: "",
+        end_datetime: "",
+        frequency: "always",
+        show_timer: false,
+        active: true,
+      })
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(null), 3000)
     } catch (error) {
-      console.error("Failed to add offer:", error)
+      const errorMsg = error instanceof Error ? error.message : "Failed to create offer"
+      console.error("[v0] Error creating offer:", error)
+      setError(errorMsg)
     } finally {
       setLoading(false)
     }
@@ -102,6 +144,19 @@ export function AdminOffers() {
 
         <Card className="p-4 mb-6">
           <h3 className="font-semibold mb-4">Create New Offer</h3>
+          
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+              {error}
+            </div>
+          )}
+          
+          {success && (
+            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+              ✓ {success}
+            </div>
+          )}
+          
           <div className="space-y-4">
             <Input
               placeholder="Offer Title"
