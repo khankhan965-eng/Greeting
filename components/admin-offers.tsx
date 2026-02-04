@@ -26,10 +26,15 @@ export function AdminOffers() {
   const fetchOffers = async () => {
     try {
       const res = await fetch("/api/offers")
+      if (!res.ok) {
+        setOffers([])
+        return
+      }
       const data = await res.json()
-      setOffers(data)
+      setOffers(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("Failed to fetch offers:", error)
+      setOffers([])
     }
   }
 
