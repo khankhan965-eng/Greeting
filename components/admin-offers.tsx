@@ -1,10 +1,10 @@
 "use client"
 
-import { Offer } from "types/index"
+import { Offer } from "@/types"
 import { useEffect, useState } from "react"
-import { Button } from "components/ui/button"
-import { Card } from "components/ui/card"
-import { Input } from "components/ui/input"
+import { Button } from "./ui/button"
+import { Card } from "./ui/card"
+import { Input } from "./ui/input"
 
 export function AdminOffers() {
   const [offers, setOffers] = useState<Offer[]>([])
