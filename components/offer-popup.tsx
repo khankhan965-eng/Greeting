@@ -1,9 +1,9 @@
 "use client"
 
-import { Offer } from "types/index"
+import { Offer } from "@/types"
 import { useEffect, useState } from "react"
 import { X } from "lucide-react"
-import { Button } from "components/ui/button"
+import { Button } from "./ui/button"
 
 interface OfferPopupProps {
   offer: Offer
