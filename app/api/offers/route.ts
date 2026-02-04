@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
-    const client = createClient();
+    const client = await createClient();
     const { data, error } = await client
       .from("offers")
       .select("*")
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const client = createClient();
+    const client = await createClient();
     const { data, error } = await client
       .from("offers")
       .insert([body])

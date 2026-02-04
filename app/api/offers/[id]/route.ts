@@ -6,7 +6,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const client = createClient();
+    const client = await createClient();
     const { data, error } = await client
       .from("offers")
       .select("*")
@@ -32,7 +32,7 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
-    const client = createClient();
+    const client = await createClient();
 
     const { data, error } = await client
       .from("offers")
@@ -59,7 +59,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const client = createClient();
+    const client = await createClient();
     const { error } = await client
       .from("offers")
       .delete()
