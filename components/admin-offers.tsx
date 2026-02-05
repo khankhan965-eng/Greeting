@@ -5,6 +5,7 @@ import { useEffect, useState } from "react"
 import { Button } from "./ui/button"
 import { Card } from "./ui/card"
 import { Input } from "./ui/input"
+import { Edit2, X } from "lucide-react"
 import {
   convertLocalToISTISO,
   convertISTISOToLocal,
@@ -16,6 +17,7 @@ export function AdminOffers() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [newOffer, setNewOffer] = useState({
     title: "",
     description: "",
@@ -45,7 +47,7 @@ export function AdminOffers() {
     }
   }
 
-  const handleAddOffer = async () => {
+  const handleSaveOffer = async () => {
     setError(null)
     setSuccess(null)
 
@@ -79,36 +81,33 @@ export function AdminOffers() {
     }
 
     setLoading(true)
-    console.log("[v0] Submitting offer with IST timezone:", {
-      ...newOffer,
-      start_datetime: startISO,
-      end_datetime: endISO,
-    })
 
     try {
-      const res = await fetch("/api/offers", {
-        method: "POST",
+      const isEditing = editingId !== null
+      const method = isEditing ? "PUT" : "POST"
+      const url = isEditing ? `/api/offers/${editingId}` : "/api/offers"
+      const body = isEditing
+        ? { ...newOffer, start_datetime: startISO, end_datetime: endISO }
+        : { ...newOffer, start_datetime: startISO, end_datetime: endISO }
+
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...newOffer,
-          start_datetime: startISO,
-          end_datetime: endISO,
-        }),
+        body: JSON.stringify(body),
       })
 
-      console.log("[v0] API response status:", res.status)
       const responseData = await res.json()
-      console.log("[v0] API response data:", responseData)
 
       if (!res.ok) {
-        setError(responseData.error || "Failed to create offer")
+        setError(responseData.error || `Failed to ${isEditing ? "update" : "create"} offer`)
         return
       }
 
-      setSuccess("Offer created successfully!")
+      const successMsg = isEditing ? "Offer updated successfully!" : "Offer created successfully!"
+      setSuccess(successMsg)
       await fetchOffers()
-      
-      // Reset form
+
+      // Reset form and editing state
       setNewOffer({
         title: "",
         description: "",
@@ -118,16 +117,48 @@ export function AdminOffers() {
         show_timer: false,
         active: true,
       })
+      setEditingId(null)
 
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000)
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : "Failed to create offer"
-      console.error("[v0] Error creating offer:", error)
+      const errorMsg = error instanceof Error ? error.message : "Failed to save offer"
+      console.error("[v0] Error saving offer:", error)
       setError(errorMsg)
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleEditOffer = (offer: Offer) => {
+    setEditingId(offer.id)
+    setNewOffer({
+      title: offer.title,
+      description: offer.description,
+      start_datetime: convertISTISOToLocal(offer.start_datetime),
+      end_datetime: convertISTISOToLocal(offer.end_datetime),
+      frequency: offer.frequency as any,
+      show_timer: offer.show_timer,
+      active: offer.active,
+    })
+    setError(null)
+    setSuccess(null)
+    // Scroll to form
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  const handleCancelEdit = () => {
+    setEditingId(null)
+    setNewOffer({
+      title: "",
+      description: "",
+      start_datetime: "",
+      end_datetime: "",
+      frequency: "always",
+      show_timer: false,
+      active: true,
+    })
+    setError(null)
   }
 
   const handleDeleteOffer = async (id: string) => {
@@ -159,8 +190,21 @@ export function AdminOffers() {
       <div>
         <h2 className="text-2xl font-bold mb-4">Manage Offers</h2>
 
-        <Card className="p-4 mb-6">
-          <h3 className="font-semibold mb-4">Create New Offer</h3>
+        <Card className="p-4 mb-6 border-2 border-red-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-lg">
+              {editingId ? "Edit Offer" : "Create New Offer"}
+            </h3>
+            {editingId && (
+              <button
+                onClick={handleCancelEdit}
+                className="p-1 hover:bg-red-100 rounded transition-colors"
+                aria-label="Cancel edit"
+              >
+                <X size={20} className="text-gray-500" />
+              </button>
+            )}
+          </div>
           
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -251,13 +295,24 @@ export function AdminOffers() {
               </div>
             </div>
 
-            <Button
-              onClick={handleAddOffer}
-              disabled={loading}
-              className="w-full bg-red-600 hover:bg-red-700"
-            >
-              {loading ? "Creating..." : "Create Offer"}
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                onClick={handleSaveOffer}
+                disabled={loading}
+                className="flex-1 bg-red-600 hover:bg-red-700"
+              >
+                {loading ? "Saving..." : editingId ? "Update Offer" : "Create Offer"}
+              </Button>
+              {editingId && (
+                <Button
+                  onClick={handleCancelEdit}
+                  variant="outline"
+                  className="flex-1 bg-transparent"
+                >
+                  Cancel
+                </Button>
+              )}
+            </div>
           </div>
         </Card>
 
@@ -279,7 +334,17 @@ export function AdminOffers() {
                       <p>End: {formatISTDateTime(offer.end_datetime)}</p>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
+                    <Button
+                      onClick={() => handleEditOffer(offer)}
+                      variant="outline"
+                      size="sm"
+                      className="text-blue-600 hover:bg-blue-50"
+                      title="Edit offer"
+                    >
+                      <Edit2 size={16} className="mr-1" />
+                      Edit
+                    </Button>
                     <Button
                       onClick={() => handleToggleOffer(offer)}
                       variant="outline"
