@@ -5,6 +5,11 @@ import { useEffect, useState } from "react"
 import { Button } from "./ui/button"
 import { Card } from "./ui/card"
 import { Input } from "./ui/input"
+import {
+  convertLocalToISTISO,
+  convertISTISOToLocal,
+  formatISTDateTime,
+} from "@/lib/timezone-utils"
 
 export function AdminOffers() {
   const [offers, setOffers] = useState<Offer[]>([])
@@ -62,21 +67,33 @@ export function AdminOffers() {
       return
     }
 
-    const startTime = new Date(newOffer.start_datetime)
-    const endTime = new Date(newOffer.end_datetime)
+    // Convert local datetime inputs to ISO format with IST timezone
+    const startISO = convertLocalToISTISO(newOffer.start_datetime)
+    const endISO = convertLocalToISTISO(newOffer.end_datetime)
+
+    const startTime = new Date(startISO)
+    const endTime = new Date(endISO)
     if (endTime <= startTime) {
       setError("End date/time must be after start date/time")
       return
     }
 
     setLoading(true)
-    console.log("[v0] Submitting offer:", newOffer)
+    console.log("[v0] Submitting offer with IST timezone:", {
+      ...newOffer,
+      start_datetime: startISO,
+      end_datetime: endISO,
+    })
 
     try {
       const res = await fetch("/api/offers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newOffer),
+        body: JSON.stringify({
+          ...newOffer,
+          start_datetime: startISO,
+          end_datetime: endISO,
+        }),
       })
 
       console.log("[v0] API response status:", res.status)
@@ -176,7 +193,7 @@ export function AdminOffers() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium">Start Date/Time</label>
+                <label className="text-sm font-medium">Start Date/Time (Asia/Kolkata)</label>
                 <Input
                   type="datetime-local"
                   value={newOffer.start_datetime}
@@ -184,9 +201,10 @@ export function AdminOffers() {
                     setNewOffer({ ...newOffer, start_datetime: e.target.value })
                   }
                 />
+                <p className="text-xs text-gray-400 mt-1">IST (UTC+5:30)</p>
               </div>
               <div>
-                <label className="text-sm font-medium">End Date/Time</label>
+                <label className="text-sm font-medium">End Date/Time (Asia/Kolkata)</label>
                 <Input
                   type="datetime-local"
                   value={newOffer.end_datetime}
@@ -194,6 +212,7 @@ export function AdminOffers() {
                     setNewOffer({ ...newOffer, end_datetime: e.target.value })
                   }
                 />
+                <p className="text-xs text-gray-400 mt-1">IST (UTC+5:30)</p>
               </div>
             </div>
 
@@ -256,13 +275,8 @@ export function AdminOffers() {
                       {offer.description}
                     </p>
                     <div className="text-xs text-gray-500">
-                      <p>
-                        Start:{" "}
-                        {new Date(offer.start_datetime).toLocaleString()}
-                      </p>
-                      <p>
-                        End: {new Date(offer.end_datetime).toLocaleString()}
-                      </p>
+                      <p>Start: {formatISTDateTime(offer.start_datetime)}</p>
+                      <p>End: {formatISTDateTime(offer.end_datetime)}</p>
                     </div>
                   </div>
                   <div className="flex gap-2">

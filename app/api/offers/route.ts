@@ -26,7 +26,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    console.log("[v0] Creating offer with data:", body);
+    console.log("[v0] Creating offer with IST timezone data:", {
+      title: body.title,
+      start_datetime: body.start_datetime,
+      end_datetime: body.end_datetime,
+      active: body.active,
+    });
     
     // Validate required fields
     if (!body.title || !body.description || !body.start_datetime || !body.end_datetime) {
@@ -36,13 +41,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Verify ISO format with timezone offset
+    if (!body.start_datetime.includes("+") && !body.start_datetime.includes("Z")) {
+      console.warn(
+        "[v0] Warning: start_datetime not in ISO format with timezone:",
+        body.start_datetime
+      );
+    }
+    if (!body.end_datetime.includes("+") && !body.end_datetime.includes("Z")) {
+      console.warn(
+        "[v0] Warning: end_datetime not in ISO format with timezone:",
+        body.end_datetime
+      );
+    }
+
     const client = await createClient();
     const { data, error } = await client
       .from("offers")
       .insert([body])
       .select();
 
-    console.log("[v0] Insert response - data:", data, "error:", error);
+    console.log("[v0] Insert response - rows affected:", data?.length, "error:", error?.message);
 
     if (error) {
       console.error("[v0] Database insert error:", error);
@@ -56,7 +75,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log("[v0] Offer created successfully:", data[0]);
+    console.log("[v0] Offer created successfully in IST timezone:", {
+      id: data[0].id,
+      start: data[0].start_datetime,
+      end: data[0].end_datetime,
+    });
     return NextResponse.json(data[0], { status: 201 });
   } catch (error) {
     console.error("[v0] POST /api/offers error:", error);
