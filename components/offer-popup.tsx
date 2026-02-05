@@ -66,9 +66,11 @@ export function OfferPopup({ offer, onClose }: OfferPopupProps) {
 
       {/* Glass morphism card */}
       <div className="relative max-w-md w-full animate-fadeInScale">
-        <div className="relative rounded-[20px] bg-white/15 border border-white/20 backdrop-blur-[20px] shadow-2xl overflow-hidden p-8">
-          {/* Subtle gradient glow effect */}
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-blue-500/5 pointer-events-none" />
+        <div className="relative rounded-[22px] bg-white/12 border border-white/20 backdrop-blur-[20px] overflow-hidden p-8" style={{
+          boxShadow: '0 20px 40px rgba(153, 27, 27, 0.25), 0 0 30px rgba(220, 38, 38, 0.15)'
+        }}>
+          {/* Subtle red gradient glow effect */}
+          <div className="absolute inset-0 bg-gradient-to-br from-red-900/8 to-red-700/5 pointer-events-none" />
 
           {/* Content */}
           <div className="relative z-10">
@@ -82,7 +84,11 @@ export function OfferPopup({ offer, onClose }: OfferPopupProps) {
             </button>
 
             {/* Title */}
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent mb-3 pr-8">
+            <h2 className="text-3xl font-bold bg-gradient-to-r from-red-300 via-red-200 to-red-300 bg-clip-text text-transparent mb-3 pr-8" style={{
+              textShadow: '0 4px 12px rgba(153, 27, 27, 0.3)',
+              fontFamily: 'Inter, Poppins, sans-serif',
+              fontWeight: '800'
+            }}>
               {offer.title}
             </h2>
 
@@ -95,36 +101,41 @@ export function OfferPopup({ offer, onClose }: OfferPopupProps) {
             {offer.show_timer && (
               <div className="mb-8">
                 {timeLeft.expired ? (
-                  <div className="bg-gradient-to-r from-red-500/20 to-pink-500/20 border border-red-500/30 backdrop-blur-md rounded-2xl px-6 py-4 text-center">
-                    <p className="text-red-200 font-semibold text-lg">
+                  <div className="bg-gradient-to-r from-red-600/25 to-red-500/20 border border-red-400/40 backdrop-blur-md rounded-2xl px-6 py-4 text-center">
+                    <p className="text-red-100 font-semibold text-lg">
                       Offer Expired
                     </p>
                   </div>
                 ) : (
-                  <div className="bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 border border-white/20 backdrop-blur-md rounded-2xl px-6 py-6">
-                    <p className="text-white/60 text-sm font-medium mb-3 uppercase tracking-wider">
+                  <div className="relative bg-gradient-to-r from-red-600/20 via-red-500/15 to-emerald-500/10 border border-red-400/30 backdrop-blur-md rounded-2xl px-6 py-6 pulse-subtle" style={{
+                    boxShadow: 'inset 0 1px 2px rgba(16, 185, 129, 0.2)'
+                  }}>
+                    {/* Top green accent line */}
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-emerald-500/60 to-transparent rounded-t-2xl" />
+                    
+                    <p className="text-red-100/80 text-sm font-medium mb-4 uppercase tracking-wider">
                       Expires in
                     </p>
                     <div className="flex justify-center gap-4">
                       <div className="flex flex-col items-center">
-                        <div className="text-4xl font-bold text-white/90 font-mono tracking-wider">
+                        <div className="text-4xl font-bold text-red-100 font-mono tracking-wider">
                           {timeLeft.hours}
                         </div>
-                        <p className="text-white/50 text-xs uppercase mt-1">hrs</p>
+                        <p className="text-red-100/50 text-xs uppercase mt-1 font-medium">hrs</p>
                       </div>
-                      <div className="text-3xl text-white/40 self-start mt-2">:</div>
+                      <div className="text-3xl text-red-100/40 self-start mt-2">:</div>
                       <div className="flex flex-col items-center">
-                        <div className="text-4xl font-bold text-white/90 font-mono tracking-wider">
+                        <div className="text-4xl font-bold text-red-100 font-mono tracking-wider">
                           {timeLeft.minutes}
                         </div>
-                        <p className="text-white/50 text-xs uppercase mt-1">min</p>
+                        <p className="text-red-100/50 text-xs uppercase mt-1 font-medium">min</p>
                       </div>
-                      <div className="text-3xl text-white/40 self-start mt-2">:</div>
+                      <div className="text-3xl text-red-100/40 self-start mt-2">:</div>
                       <div className="flex flex-col items-center">
-                        <div className="text-4xl font-bold text-white/90 font-mono tracking-wider">
+                        <div className="text-4xl font-bold text-red-100 font-mono tracking-wider">
                           {timeLeft.seconds}
                         </div>
-                        <p className="text-white/50 text-xs uppercase mt-1">sec</p>
+                        <p className="text-red-100/50 text-xs uppercase mt-1 font-medium">sec</p>
                       </div>
                     </div>
                   </div>
@@ -135,9 +146,18 @@ export function OfferPopup({ offer, onClose }: OfferPopupProps) {
             {/* CTA Button */}
             <button
               onClick={onClose}
-              className="w-full bg-gradient-to-r from-purple-500 via-blue-500 to-purple-600 hover:from-purple-600 hover:via-blue-600 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl hover:glow-gradient text-base uppercase tracking-wider"
+              className="relative w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 active:scale-95 text-base uppercase tracking-wider overflow-hidden"
+              style={{
+                boxShadow: '0 8px 20px rgba(220, 38, 38, 0.35), inset 0 1px 2px rgba(16, 185, 129, 0.3)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = '0 12px 30px rgba(220, 38, 38, 0.5), inset 0 1px 2px rgba(16, 185, 129, 0.4), 0 0 20px rgba(16, 185, 129, 0.2)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = '0 8px 20px rgba(220, 38, 38, 0.35), inset 0 1px 2px rgba(16, 185, 129, 0.3)';
+              }}
             >
-              Claim Now
+              <span className="relative z-10">Claim Now</span>
             </button>
 
             {/* Secondary action text */}
@@ -161,17 +181,25 @@ export function OfferPopup({ offer, onClose }: OfferPopupProps) {
           }
         }
 
+        @keyframes subtlePulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 1.02;
+          }
+        }
+
         .animate-fadeInScale {
           animation: fadeInScale 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .hover\:glow-subtle:hover {
-          box-shadow: 0 0 12px rgba(168, 85, 247, 0.3);
+        .pulse-subtle {
+          animation: subtlePulse 5s ease-in-out infinite;
         }
 
-        .hover\:glow-gradient:hover {
-          box-shadow: 0 0 20px rgba(168, 85, 247, 0.5),
-            0 0 40px rgba(59, 130, 246, 0.3);
+        .hover\:glow-subtle:hover {
+          box-shadow: 0 0 12px rgba(220, 38, 38, 0.4);
         }
 
         @media (max-width: 640px) {
