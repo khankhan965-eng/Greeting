@@ -50,9 +50,32 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "toggle") {
-      const { id, is_closed } = data
+      const { id, is_active } = data
 
-      const { error } = await supabase.from("shop_schedule").update({ is_closed }).eq("id", id)
+      const { error } = await supabase.from("shop_schedule").update({ is_active }).eq("id", id)
+
+      if (error) throw error
+
+      return NextResponse.json({ success: true })
+    }
+
+    if (action === "edit") {
+      const { id, day_of_week, opening_time, closing_time } = data
+
+      const { error } = await supabase
+        .from("shop_schedule")
+        .update({ day_of_week, opening_time, closing_time })
+        .eq("id", id)
+
+      if (error) throw error
+
+      return NextResponse.json({ success: true })
+    }
+
+    if (action === "bulk-toggle") {
+      const { is_active } = data
+
+      const { error } = await supabase.from("shop_schedule").update({ is_active })
 
       if (error) throw error
 
