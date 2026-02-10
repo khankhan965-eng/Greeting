@@ -365,15 +365,14 @@ export default function ScheduleManager() {
                 </Button>
                 <Button
                   size="sm"
-                  variant={!slot.is_closed ? "default" : "outline"}
                   className={
-                    !slot.is_closed
-                      ? "bg-emerald-600 hover:bg-emerald-700"
-                      : "text-gray-600 hover:bg-gray-100"
+                    slot.is_closed
+                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                      : "bg-red-600 hover:bg-red-700 text-white"
                   }
                   onClick={() => handleToggle(slot.id, slot.is_closed)}
                 >
-                  {!slot.is_closed ? "Active" : "Inactive"}
+                  {slot.is_closed ? "Activate" : "Deactivate"}
                 </Button>
                 <Button
                   size="sm"
