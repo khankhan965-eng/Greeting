@@ -75,7 +75,10 @@ export async function POST(request: NextRequest) {
     if (action === "bulk-toggle") {
       const { is_closed } = data
 
-      const { error } = await supabase.from("shop_schedule").update({ is_closed })
+      const { error } = await supabase
+        .from("shop_schedule")
+        .update({ is_closed })
+        .neq("id", null) // Match all records by excluding null IDs (all IDs are not null)
 
       if (error) throw error
 
