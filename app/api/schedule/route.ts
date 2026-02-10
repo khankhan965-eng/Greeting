@@ -50,9 +50,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "toggle") {
-      const { id, is_active } = data
+      const { id, is_closed } = data
 
-      const { error } = await supabase.from("shop_schedule").update({ is_active }).eq("id", id)
+      const { error } = await supabase.from("shop_schedule").update({ is_closed }).eq("id", id)
 
       if (error) throw error
 
@@ -73,9 +73,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "bulk-toggle") {
-      const { is_active } = data
+      const { is_closed } = data
 
-      const { error } = await supabase.from("shop_schedule").update({ is_active })
+      const { error } = await supabase.from("shop_schedule").update({ is_closed })
 
       if (error) throw error
 

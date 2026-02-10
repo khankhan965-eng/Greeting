@@ -13,7 +13,7 @@ interface TimeSlot {
   day_of_week: number
   opening_time: string
   closing_time: string
-  is_active: boolean
+  is_closed: boolean
 }
 
 interface EditModalState {
@@ -105,14 +105,14 @@ export default function ScheduleManager() {
     }
   }
 
-  const handleToggle = async (id: string, isActive: boolean) => {
+  const handleToggle = async (id: string, isClosed: boolean) => {
     try {
       const response = await fetch("/api/schedule", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "toggle",
-          data: { id, is_active: !isActive },
+          data: { id, is_closed: !isClosed },
         }),
       })
 
@@ -172,9 +172,9 @@ export default function ScheduleManager() {
   }
 
   const handleBulkToggle = async () => {
-    const allActive = schedules.every((s) => s.is_active)
+    const allClosed = schedules.every((s) => s.is_closed)
     const confirmed = window.confirm(
-      `Are you sure you want to ${allActive ? "deactivate" : "activate"} all schedules?`
+      `Are you sure you want to ${allClosed ? "open" : "close"} all schedules?`
     )
 
     if (!confirmed) return
@@ -185,7 +185,7 @@ export default function ScheduleManager() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "bulk-toggle",
-          data: { is_active: !allActive },
+          data: { is_closed: !allClosed },
         }),
       })
 
@@ -199,7 +199,7 @@ export default function ScheduleManager() {
 
   if (loading) return <div className="text-center py-4">Loading schedule...</div>
 
-  const allActive = schedules.length > 0 && schedules.every((s) => s.is_active)
+  const allClosed = schedules.length > 0 && schedules.every((s) => s.is_closed)
 
   return (
     <div className="space-y-6">
@@ -301,12 +301,12 @@ export default function ScheduleManager() {
             <Button
               onClick={handleBulkToggle}
               className={`${
-                allActive
-                  ? "bg-gray-500 hover:bg-gray-600"
-                  : "bg-emerald-600 hover:bg-emerald-700"
+                allClosed
+                  ? "bg-emerald-600 hover:bg-emerald-700"
+                  : "bg-gray-500 hover:bg-gray-600"
               } text-white text-sm`}
             >
-              {allActive ? "Deactivate All" : "Activate All"}
+              {allClosed ? "Open All" : "Close All"}
             </Button>
           )}
         </div>
@@ -322,12 +322,12 @@ export default function ScheduleManager() {
                   <div className="font-semibold">{DAYS[slot.day_of_week]}</div>
                   <span
                     className={`text-xs font-bold px-2 py-1 rounded-full ${
-                      slot.is_active
+                      !slot.is_closed
                         ? "bg-emerald-100 text-emerald-700"
                         : "bg-gray-200 text-gray-600"
                     }`}
                   >
-                    {slot.is_active ? "Active" : "Inactive"}
+                    {!slot.is_closed ? "Open" : "Closed"}
                   </span>
                 </div>
                 <div className="text-sm text-gray-600 mt-1">
@@ -344,6 +344,18 @@ export default function ScheduleManager() {
                 >
                   <Edit2 size={16} className="mr-1" />
                   Edit
+                </Button>
+                <Button
+                  size="sm"
+                  variant={!slot.is_closed ? "default" : "outline"}
+                  className={
+                    !slot.is_closed
+                      ? "bg-emerald-600 hover:bg-emerald-700"
+                      : "text-gray-600 hover:bg-gray-100"
+                  }
+                  onClick={() => handleToggle(slot.id, slot.is_closed)}
+                >
+                  {!slot.is_closed ? "Open" : "Closed"}
                 </Button>
                 <Button
                   size="sm"
