@@ -106,21 +106,29 @@ export default function ScheduleManager() {
   }
 
   const handleToggle = async (id: string, isClosed: boolean) => {
+    const newIsClosed = !isClosed
+    
+    // Update local state immediately for instant UI feedback
+    setSchedules(schedules.map((s) => (s.id === id ? { ...s, is_closed: newIsClosed } : s)))
+
     try {
       const response = await fetch("/api/schedule", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "toggle",
-          data: { id, is_closed: !isClosed },
+          data: { id, is_closed: newIsClosed },
         }),
       })
 
-      if (response.ok) {
-        fetchSchedules()
+      if (!response.ok) {
+        // Revert state on error
+        setSchedules(schedules.map((s) => (s.id === id ? { ...s, is_closed: isClosed } : s)))
       }
     } catch (error) {
       console.error("Error toggling slot:", error)
+      // Revert state on error
+      setSchedules(schedules.map((s) => (s.id === id ? { ...s, is_closed: isClosed } : s)))
     }
   }
 
@@ -173,11 +181,18 @@ export default function ScheduleManager() {
 
   const handleBulkToggle = async () => {
     const anyActive = schedules.some((s) => !s.is_closed)
+    const newIsClosed = anyActive // if anyActive, set is_closed to true (deactivate)
     const confirmed = window.confirm(
       `Are you sure you want to ${anyActive ? "deactivate" : "activate"} all schedules?`
     )
 
     if (!confirmed) return
+
+    // Store original state for rollback
+    const originalSchedules = [...schedules]
+    
+    // Update local state immediately for instant UI feedback
+    setSchedules(schedules.map((s) => ({ ...s, is_closed: newIsClosed })))
 
     try {
       const response = await fetch("/api/schedule", {
@@ -185,15 +200,18 @@ export default function ScheduleManager() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "bulk-toggle",
-          data: { is_closed: anyActive }, // if anyActive, set is_closed to true (deactivate)
+          data: { is_closed: newIsClosed },
         }),
       })
 
-      if (response.ok) {
-        fetchSchedules()
+      if (!response.ok) {
+        // Revert state on error
+        setSchedules(originalSchedules)
       }
     } catch (error) {
       console.error("Error bulk toggling schedules:", error)
+      // Revert state on error
+      setSchedules(originalSchedules)
     }
   }
 
@@ -302,7 +320,7 @@ export default function ScheduleManager() {
               onClick={handleBulkToggle}
               className={`${
                 anyActive
-                  ? "bg-gray-500 hover:bg-gray-600"
+                  ? "bg-red-600 hover:bg-red-700"
                   : "bg-emerald-600 hover:bg-emerald-700"
               } text-white text-sm`}
             >
