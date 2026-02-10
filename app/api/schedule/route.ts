@@ -59,6 +59,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true })
     }
 
+    if (action === "edit") {
+      const { id, day_of_week, opening_time, closing_time } = data
+
+      const { error } = await supabase
+        .from("shop_schedule")
+        .update({ day_of_week, opening_time, closing_time })
+        .eq("id", id)
+
+      if (error) throw error
+
+      return NextResponse.json({ success: true })
+    }
+
+    if (action === "bulk-toggle") {
+      const { is_closed } = data
+
+      const { error } = await supabase
+        .from("shop_schedule")
+        .update({ is_closed })
+        .not("id", "is", null) // Match all records by filtering out null IDs (all IDs are never null)
+
+      if (error) throw error
+
+      return NextResponse.json({ success: true })
+    }
+
     return NextResponse.json({ error: "Invalid action" }, { status: 400 })
   } catch (error) {
     console.error("Error updating schedule:", error)
