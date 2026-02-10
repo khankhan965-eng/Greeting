@@ -172,9 +172,9 @@ export default function ScheduleManager() {
   }
 
   const handleBulkToggle = async () => {
-    const allClosed = schedules.every((s) => s.is_closed)
+    const anyActive = schedules.some((s) => !s.is_closed)
     const confirmed = window.confirm(
-      `Are you sure you want to ${allClosed ? "open" : "close"} all schedules?`
+      `Are you sure you want to ${anyActive ? "deactivate" : "activate"} all schedules?`
     )
 
     if (!confirmed) return
@@ -185,7 +185,7 @@ export default function ScheduleManager() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "bulk-toggle",
-          data: { is_closed: !allClosed },
+          data: { is_closed: anyActive }, // if anyActive, set is_closed to true (deactivate)
         }),
       })
 
@@ -199,7 +199,7 @@ export default function ScheduleManager() {
 
   if (loading) return <div className="text-center py-4">Loading schedule...</div>
 
-  const allClosed = schedules.length > 0 && schedules.every((s) => s.is_closed)
+  const anyActive = schedules.length > 0 && schedules.some((s) => !s.is_closed)
 
   return (
     <div className="space-y-6">
@@ -301,12 +301,12 @@ export default function ScheduleManager() {
             <Button
               onClick={handleBulkToggle}
               className={`${
-                allClosed
-                  ? "bg-emerald-600 hover:bg-emerald-700"
-                  : "bg-gray-500 hover:bg-gray-600"
+                anyActive
+                  ? "bg-gray-500 hover:bg-gray-600"
+                  : "bg-emerald-600 hover:bg-emerald-700"
               } text-white text-sm`}
             >
-              {allClosed ? "Open All" : "Close All"}
+              {anyActive ? "Deactivate All" : "Activate All"}
             </Button>
           )}
         </div>
@@ -327,7 +327,7 @@ export default function ScheduleManager() {
                         : "bg-gray-200 text-gray-600"
                     }`}
                   >
-                    {!slot.is_closed ? "Open" : "Closed"}
+                    {!slot.is_closed ? "Active" : "Inactive"}
                   </span>
                 </div>
                 <div className="text-sm text-gray-600 mt-1">
@@ -355,19 +355,7 @@ export default function ScheduleManager() {
                   }
                   onClick={() => handleToggle(slot.id, slot.is_closed)}
                 >
-                  {!slot.is_closed ? "Open" : "Closed"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant={slot.is_active ? "default" : "outline"}
-                  className={
-                    slot.is_active
-                      ? "bg-emerald-600 hover:bg-emerald-700"
-                      : "text-gray-600 hover:bg-gray-100"
-                  }
-                  onClick={() => handleToggle(slot.id, slot.is_active)}
-                >
-                  {slot.is_active ? "Active" : "Inactive"}
+                  {!slot.is_closed ? "Active" : "Inactive"}
                 </Button>
                 <Button
                   size="sm"
