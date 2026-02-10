@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       const { error } = await supabase
         .from("shop_schedule")
         .update({ is_closed })
-        .neq("id", null) // Match all records by excluding null IDs (all IDs are not null)
+        .not("id", "is", null) // Match all records by filtering out null IDs (all IDs are never null)
 
       if (error) throw error
 
