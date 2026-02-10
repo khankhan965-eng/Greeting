@@ -1,0 +1,79 @@
+import { createClient } from "@/lib/supabase/server";
+import { NextRequest, NextResponse } from "next/server";
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const client = await createClient();
+    const { data, error } = await client
+      .from("offers")
+      .select("*")
+      .eq("id", params.id)
+      .single();
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    return NextResponse.json(data);
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to fetch offer" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const body = await request.json();
+    const client = await createClient();
+
+    const { data, error } = await client
+      .from("offers")
+      .update(body)
+      .eq("id", params.id)
+      .select()
+      .single();
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    return NextResponse.json(data);
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to update offer" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const client = await createClient();
+    const { error } = await client
+      .from("offers")
+      .delete()
+      .eq("id", params.id);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to delete offer" },
+      { status: 500 }
+    );
+  }
+}
