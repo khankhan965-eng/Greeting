@@ -34,15 +34,18 @@ export function AdminOffers() {
 
   const fetchOffers = async () => {
     try {
-      const res = await fetch("/api/offers")
+      console.log("[v0] Fetching offers for admin panel...");
+      const res = await fetch("/api/offers?admin=true")
       if (!res.ok) {
+        console.error("[v0] Failed to fetch offers - status:", res.status);
         setOffers([])
         return
       }
       const data = await res.json()
+      console.log("[v0] Offers fetched successfully:", data?.length || 0);
       setOffers(Array.isArray(data) ? data : [])
     } catch (error) {
-      console.error("Failed to fetch offers:", error)
+      console.error("[v0] Error fetching offers:", error)
       setOffers([])
     }
   }
@@ -165,23 +168,45 @@ export function AdminOffers() {
     if (!confirm("Delete this offer?")) return
 
     try {
-      await fetch(`/api/offers/${id}`, { method: "DELETE" })
-      fetchOffers()
+      console.log("[v0] Deleting offer:", id);
+      const res = await fetch(`/api/offers/${id}`, { method: "DELETE" })
+      const data = await res.json();
+      if (!res.ok) {
+        console.error("[v0] Delete failed:", data);
+        setError(data.error || "Failed to delete offer");
+        return;
+      }
+      console.log("[v0] Offer deleted successfully");
+      setSuccess("Offer deleted successfully!");
+      await fetchOffers()
+      setTimeout(() => setSuccess(null), 3000)
     } catch (error) {
-      console.error("Failed to delete offer:", error)
+      console.error("[v0] Error deleting offer:", error);
+      setError(error instanceof Error ? error.message : "Failed to delete offer");
     }
   }
 
   const handleToggleOffer = async (offer: Offer) => {
     try {
-      await fetch(`/api/offers/${offer.id}`, {
+      console.log("[v0] Toggling offer active status:", offer.id, "current:", offer.active);
+      const res = await fetch(`/api/offers/${offer.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...offer, active: !offer.active }),
       })
-      fetchOffers()
+      const data = await res.json();
+      if (!res.ok) {
+        console.error("[v0] Toggle failed:", data);
+        setError(data.error || "Failed to toggle offer");
+        return;
+      }
+      console.log("[v0] Offer toggled successfully");
+      setSuccess(`Offer ${!offer.active ? "enabled" : "disabled"} successfully!`);
+      await fetchOffers()
+      setTimeout(() => setSuccess(null), 3000)
     } catch (error) {
-      console.error("Failed to toggle offer:", error)
+      console.error("[v0] Error toggling offer:", error);
+      setError(error instanceof Error ? error.message : "Failed to toggle offer");
     }
   }
 
