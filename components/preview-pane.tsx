@@ -10,7 +10,21 @@ interface PreviewPaneProps {
 }
 
 export default function PreviewPane({ data }: PreviewPaneProps) {
-  const availableProducts = data.products.filter((p) => p.available)
+  // Add null check
+  if (!data) {
+    return (
+      <div className="bg-card rounded-lg overflow-hidden border border-border shadow-lg">
+        <div className="bg-muted/50 p-4 border-b border-border">
+          <p className="text-sm text-muted-foreground">Preview of Public Page</p>
+        </div>
+        <div className="bg-background p-8 text-center text-muted-foreground">
+          <p>Loading preview...</p>
+        </div>
+      </div>
+    )
+  }
+
+  const availableProducts = data.products?.filter((p) => p.available) || []
 
   return (
     <div className="bg-card rounded-lg overflow-hidden border border-border shadow-lg">

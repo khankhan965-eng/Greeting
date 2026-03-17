@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -133,7 +134,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const client = await createClient();
+    // Use admin client to bypass RLS for admin operations
+    const client = await createAdminClient();
     const { data, error } = await client
       .from("offers")
       .insert([offerData])
