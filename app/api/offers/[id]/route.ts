@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
@@ -35,7 +36,8 @@ export async function PUT(
     console.log("[v0] PUT /api/offers/[id] - updating offer:", params.id);
     console.log("[v0] Update body:", body);
     
-    const client = await createClient();
+    // Use admin client to bypass RLS
+    const client = await createAdminClient();
 
     const { data, error } = await client
       .from("offers")
@@ -67,7 +69,8 @@ export async function DELETE(
   try {
     console.log("[v0] DELETE /api/offers/[id] - deleting offer:", params.id);
     
-    const client = await createClient();
+    // Use admin client to bypass RLS
+    const client = await createAdminClient();
     const { error } = await client
       .from("offers")
       .delete()

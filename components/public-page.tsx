@@ -98,6 +98,8 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
       } catch (error) {
         console.error("[v0] Failed to fetch data:", error)
         setData(getDefaultData())
+        // Ensure schedules and offers are set even if fetch fails
+        setSchedules([])
       }
     }
 
@@ -112,15 +114,15 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
 
   if (!data) return <div className="p-4">Loading...</div>
 
-  const availableProducts = data.products.filter((p) => p.available)
-  const displayProducts = showUnavailable ? data.products : availableProducts
+  const availableProducts = (data.products || []).filter((p) => p.available)
+  const displayProducts = showUnavailable ? (data.products || []) : availableProducts
 
   const statusDisplay = {
     open: { badge: "OPEN", color: "from-green-400 to-green-600", message: "We are Open" },
     closed: { badge: "CLOSED", color: "from-red-400 to-red-600", message: "We are Closed" },
   }
 
-  const current = statusDisplay[data.status]
+  const current = statusDisplay[data.status || "open"] || statusDisplay["open"]
 
   return (
     <>
@@ -175,7 +177,7 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
           <div>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
               <h2 className="text-2xl sm:text-3xl font-bold text-foreground">What We Have Today</h2>
-              {data.products.some((p) => !p.available) && (
+              {(data.products || []).some((p) => !p.available) && (
                 <button
                   onClick={() => setShowUnavailable(!showUnavailable)}
                   className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm sm:text-base font-semibold button-hover"
