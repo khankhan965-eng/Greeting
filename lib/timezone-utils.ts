@@ -5,10 +5,18 @@ const IST_TIMEZONE = "Asia/Kolkata"
  * Example: 2024-01-15T14:30 (from datetime-local input) → 2024-01-15T14:30:00+05:30 (ISO with IST offset)
  */
 export function convertLocalToISTISO(datetimeLocalValue: string): string {
-  if (!datetimeLocalValue) return ""
+  if (!datetimeLocalValue || datetimeLocalValue === "undefined" || datetimeLocalValue === "") {
+    console.error("[v0] Invalid datetime input to convertLocalToISTISO:", datetimeLocalValue)
+    throw new Error(`Invalid datetime input: ${datetimeLocalValue}`)
+  }
 
   // datetime-local gives us YYYY-MM-DDTHH:mm format in local browser timezone
   const localDate = new Date(datetimeLocalValue)
+  
+  if (isNaN(localDate.getTime())) {
+    console.error("[v0] Failed to parse datetime:", datetimeLocalValue)
+    throw new Error(`Failed to parse datetime: ${datetimeLocalValue}`)
+  }
 
   // Get the time in IST timezone
   const istFormatter = new Intl.DateTimeFormat("en-US", {
@@ -28,8 +36,15 @@ export function convertLocalToISTISO(datetimeLocalValue: string): string {
     partMap[part.type] = part.value
   })
 
+  // Validate all parts exist
+  if (!partMap.year || !partMap.month || !partMap.day || !partMap.hour || !partMap.minute || !partMap.second) {
+    console.error("[v0] Missing date parts:", partMap)
+    throw new Error("Failed to format datetime parts")
+  }
+
   // Create ISO string with +05:30 offset for IST
   const isoString = `${partMap.year}-${partMap.month}-${partMap.day}T${partMap.hour}:${partMap.minute}:${partMap.second}+05:30`
+  console.log("[v0] convertLocalToISTISO result:", { input: datetimeLocalValue, output: isoString })
   return isoString
 }
 

@@ -73,11 +73,41 @@ export function AdminOffers() {
     }
 
     // Convert local datetime inputs to ISO format with IST timezone
-    const startISO = convertLocalToISTISO(newOffer.start_datetime)
-    const endISO = convertLocalToISTISO(newOffer.end_datetime)
+    let startISO: string
+    let endISO: string
+    
+    try {
+      startISO = convertLocalToISTISO(newOffer.start_datetime)
+      console.log("[v0] Start datetime converted:", startISO)
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : "Failed to convert start date/time"
+      console.error("[v0] Start datetime conversion error:", errMsg)
+      setError(errMsg)
+      return
+    }
+
+    try {
+      endISO = convertLocalToISTISO(newOffer.end_datetime)
+      console.log("[v0] End datetime converted:", endISO)
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : "Failed to convert end date/time"
+      console.error("[v0] End datetime conversion error:", errMsg)
+      setError(errMsg)
+      return
+    }
 
     const startTime = new Date(startISO)
     const endTime = new Date(endISO)
+    
+    if (isNaN(startTime.getTime())) {
+      setError("Invalid start date/time")
+      return
+    }
+    if (isNaN(endTime.getTime())) {
+      setError("Invalid end date/time")
+      return
+    }
+
     if (endTime <= startTime) {
       setError("End date/time must be after start date/time")
       return
@@ -89,17 +119,39 @@ export function AdminOffers() {
       const isEditing = editingId !== null
       const method = isEditing ? "PUT" : "POST"
       const url = isEditing ? `/api/offers/${editingId}` : "/api/offers"
-      const body = isEditing
-        ? { ...newOffer, start_datetime: startISO, end_datetime: endISO }
-        : { ...newOffer, start_datetime: startISO, end_datetime: endISO }
+      
+      // Prepare payload - ensure no undefined values
+      const payload = {
+        title: newOffer.title.trim(),
+        description: newOffer.description.trim(),
+        start_datetime: startISO,
+        end_datetime: endISO,
+        frequency: newOffer.frequency || "always",
+        show_timer: Boolean(newOffer.show_timer),
+        active: Boolean(newOffer.active),
+      }
+
+      // Validate payload has no undefined values
+      for (const [key, value] of Object.entries(payload)) {
+        if (value === undefined || value === null) {
+          console.error("[v0] Payload validation failed - undefined value:", key)
+          setError(`Invalid ${key} - cannot be empty`)
+          setLoading(false)
+          return
+        }
+      }
+
+      console.log("[v0] Sending offer payload:", payload)
 
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(payload),
       })
 
       const responseData = await res.json()
+
+      console.log("[v0] API response status:", res.status, "data:", responseData)
 
       if (!res.ok) {
         setError(responseData.error || `Failed to ${isEditing ? "update" : "create"} offer`)
