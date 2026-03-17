@@ -48,12 +48,16 @@ export async function POST(request: NextRequest) {
       active: body.active,
     });
     
-    // Validate required fields
-    if (!body.title || !body.description || !body.start_datetime || !body.end_datetime) {
-      return NextResponse.json(
-        { error: "Title, description, start_datetime, and end_datetime are required" },
-        { status: 400 }
-      );
+    // Validate required fields - ensure no undefined values
+    const requiredFields = ["title", "description", "start_datetime", "end_datetime"];
+    for (const field of requiredFields) {
+      if (!body[field] || body[field] === undefined || body[field] === "") {
+        console.error(`[v0] Missing required field: ${field}`, { value: body[field] });
+        return NextResponse.json(
+          { error: `${field} is required and cannot be empty` },
+          { status: 400 }
+        );
+      }
     }
 
     // Verify ISO format with timezone offset
@@ -70,17 +74,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Prepare offer data - only include fields expected by database
+    const offerData = {
+      title: String(body.title).trim(),
+      description: String(body.description).trim(),
+      start_datetime: body.start_datetime,
+      end_datetime: body.end_datetime,
+      frequency: body.frequency || "always",
+      show_timer: Boolean(body.show_timer),
+      active: Boolean(body.active ?? true),
+    };
+
+    console.log("[v0] Prepared offer data:", offerData);
+
     const client = await createClient();
     const { data, error } = await client
       .from("offers")
-      .insert([body])
+      .insert([offerData])
       .select();
 
     console.log("[v0] Insert response - rows affected:", data?.length, "error:", error?.message);
 
     if (error) {
       console.error("[v0] Database insert error:", error);
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return NextResponse.json(
+        { error: error.message || "Failed to create offer in database" },
+        { status: 400 }
+      );
     }
 
     if (!data || data.length === 0) {
