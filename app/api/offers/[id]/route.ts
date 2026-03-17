@@ -32,6 +32,9 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
+    console.log("[v0] PUT /api/offers/[id] - updating offer:", params.id);
+    console.log("[v0] Update body:", body);
+    
     const client = await createClient();
 
     const { data, error } = await client
@@ -42,11 +45,14 @@ export async function PUT(
       .single();
 
     if (error) {
+      console.error("[v0] Update error:", error);
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
+    console.log("[v0] Offer updated successfully:", data);
     return NextResponse.json(data);
   } catch (error) {
+    console.error("[v0] PUT error:", error);
     return NextResponse.json(
       { error: "Failed to update offer" },
       { status: 500 }
@@ -59,6 +65,8 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log("[v0] DELETE /api/offers/[id] - deleting offer:", params.id);
+    
     const client = await createClient();
     const { error } = await client
       .from("offers")
@@ -66,11 +74,14 @@ export async function DELETE(
       .eq("id", params.id);
 
     if (error) {
+      console.error("[v0] Delete error:", error);
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
+    console.log("[v0] Offer deleted successfully");
     return NextResponse.json({ success: true });
   } catch (error) {
+    console.error("[v0] DELETE error:", error);
     return NextResponse.json(
       { error: "Failed to delete offer" },
       { status: 500 }

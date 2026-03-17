@@ -4,18 +4,33 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(request: NextRequest) {
   try {
     const client = await createClient();
-    const { data, error } = await client
+    const url = new URL(request.url);
+    const isAdminRequest = url.searchParams.get("admin") === "true";
+
+    console.log("[v0] GET /api/offers - Admin request:", isAdminRequest);
+
+    const query = client
       .from("offers")
       .select("*")
-      .eq("active", true)
       .order("created_at", { ascending: false });
 
+    // For public API: only show active offers
+    // For admin API: show all offers
+    if (!isAdminRequest) {
+      query.eq("active", true);
+    }
+
+    const { data, error } = await query;
+
     if (error) {
+      console.error("[v0] Database error fetching offers:", error);
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    return NextResponse.json(data);
+    console.log("[v0] Offers fetched:", data?.length || 0, "isAdmin:", isAdminRequest);
+    return NextResponse.json(data || []);
   } catch (error) {
+    console.error("[v0] GET /api/offers error:", error);
     return NextResponse.json(
       { error: "Failed to fetch offers" },
       { status: 500 }
