@@ -41,26 +41,41 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    console.log("[v0] Creating offer with IST timezone data:", {
-      title: body.title,
-      start_datetime: body.start_datetime,
-      end_datetime: body.end_datetime,
-      active: body.active,
-    });
+    console.log("[v0] POST /api/offers - Raw request body keys:", Object.keys(body));
+    console.log("[v0] POST /api/offers - Full payload:", JSON.stringify(body));
     
-    // Validate required fields - ensure no undefined values
+    // Validate required fields - strict checking for undefined/null/empty
     const requiredFields = ["title", "description", "start_datetime", "end_datetime"];
     for (const field of requiredFields) {
-      if (!body[field] || body[field] === undefined || body[field] === "") {
-        console.error(`[v0] Missing required field: ${field}`, { value: body[field] });
+      const value = body[field];
+      
+      // Check for undefined, null, empty string, or "undefined" string
+      if (value === undefined || value === null || value === "" || value === "undefined" || value === "Invalid Date") {
+        console.error(`[v0] Invalid value for field '${field}':`, { 
+          value, 
+          type: typeof value,
+          isUndefinedString: value === "undefined"
+        });
         return NextResponse.json(
-          { error: `${field} is required and cannot be empty` },
+          { error: `${field} is required and must be a valid value (received: ${value})` },
           { status: 400 }
         );
       }
+
+      // For datetime fields, validate ISO format
+      if (field.includes("datetime")) {
+        const dateObj = new Date(value);
+        if (isNaN(dateObj.getTime())) {
+          console.error(`[v0] Invalid ISO datetime for '${field}':`, value);
+          return NextResponse.json(
+            { error: `${field} must be a valid ISO datetime string` },
+            { status: 400 }
+          );
+        }
+      }
     }
 
-    // Verify ISO format with timezone offset
+    // Verify ISO format with timezone offset or Z
     if (!body.start_datetime.includes("+") && !body.start_datetime.includes("Z")) {
       console.warn(
         "[v0] Warning: start_datetime not in ISO format with timezone:",
@@ -75,17 +90,48 @@ export async function POST(request: NextRequest) {
     }
 
     // Prepare offer data - only include fields expected by database
-    const offerData = {
-      title: String(body.title).trim(),
-      description: String(body.description).trim(),
-      start_datetime: body.start_datetime,
-      end_datetime: body.end_datetime,
-      frequency: body.frequency || "always",
-      show_timer: Boolean(body.show_timer),
-      active: Boolean(body.active ?? true),
-    };
+    // Filter out any fields that are undefined or null to prevent database errors
+    const offerData: Record<string, any> = {};
+    
+    // Required fields
+    const titleTrimmed = String(body.title).trim();
+    const descriptionTrimmed = String(body.description).trim();
+    
+    if (!titleTrimmed) {
+      return NextResponse.json(
+        { error: "Title cannot be empty after trimming" },
+        { status: 400 }
+      );
+    }
+    if (!descriptionTrimmed) {
+      return NextResponse.json(
+        { error: "Description cannot be empty after trimming" },
+        { status: 400 }
+      );
+    }
 
-    console.log("[v0] Prepared offer data:", offerData);
+    offerData.title = titleTrimmed;
+    offerData.description = descriptionTrimmed;
+    offerData.start_datetime = body.start_datetime;
+    offerData.end_datetime = body.end_datetime;
+    
+    // Optional fields with defaults
+    offerData.frequency = body.frequency ? String(body.frequency).toLowerCase() : "always";
+    offerData.show_timer = Boolean(body.show_timer);
+    offerData.active = body.active !== undefined ? Boolean(body.active) : true;
+
+    console.log("[v0] Final offer data to insert:", offerData);
+    
+    // Double-check no undefined values exist
+    for (const [key, value] of Object.entries(offerData)) {
+      if (value === undefined) {
+        console.error("[v0] CRITICAL: Undefined value found in offer data:", key);
+        return NextResponse.json(
+          { error: `Internal error: ${key} is undefined` },
+          { status: 500 }
+        );
+      }
+    }
 
     const client = await createClient();
     const { data, error } = await client
@@ -97,6 +143,12 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error("[v0] Database insert error:", error);
+      console.error("[v0] Error details:", {
+        code: (error as any).code,
+        message: error.message,
+        details: (error as any).details,
+        hint: (error as any).hint,
+      });
       return NextResponse.json(
         { error: error.message || "Failed to create offer in database" },
         { status: 400 }
@@ -110,14 +162,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log("[v0] Offer created successfully in IST timezone:", {
+    console.log("[v0] Offer created successfully:", {
       id: data[0].id,
+      title: data[0].title,
       start: data[0].start_datetime,
       end: data[0].end_datetime,
     });
     return NextResponse.json(data[0], { status: 201 });
   } catch (error) {
     console.error("[v0] POST /api/offers error:", error);
+    console.error("[v0] Error stack:", error instanceof Error ? error.stack : "no stack");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to create offer" },
       { status: 500 }
