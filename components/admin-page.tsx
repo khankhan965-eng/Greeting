@@ -79,6 +79,7 @@ export default function AdminPage({ isAuthenticated, onAuthenticated, onLogout }
         onDataUpdate={handleDataUpdate}
         showInstructions={showInstructions}
         onCloseInstructions={() => setShowInstructions(false)}
+        onCloseInstructions={() => setShowInstructions(false)}
       />
     </div>
   )
