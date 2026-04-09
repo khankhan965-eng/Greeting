@@ -4,11 +4,13 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
-    const client = await createClient();
     const url = new URL(request.url);
     const isAdminRequest = url.searchParams.get("admin") === "true";
 
     console.log("[v0] GET /api/offers - Admin request:", isAdminRequest);
+
+    // Use admin client for admin requests to bypass RLS, regular client for public
+    const client = isAdminRequest ? await createAdminClient() : await createClient();
 
     const query = client
       .from("offers")
