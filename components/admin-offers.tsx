@@ -271,7 +271,7 @@ export function AdminOffers() {
         <Card className="p-4 mb-6 border-2 border-red-200">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-lg">
-              {editingId ? "Edit Offer" : "Create New Offer"}
+              {editingId ? "Edit Offer" : "Create test New Offer"}
             </h3>
             {editingId && (
               <button
