@@ -7,11 +7,12 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const resolvedParams = await params;
     const client = await createClient();
     const { data, error } = await client
       .from("offers")
       .select("*")
-      .eq("id", params.id)
+      .eq("id", resolvedParams.id)
       .single();
 
     if (error) {
@@ -32,8 +33,9 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const resolvedParams = await params;
     const body = await request.json();
-    console.log("[v0] PUT /api/offers/[id] - updating offer:", params.id);
+    console.log("[v0] PUT /api/offers/[id] - updating offer:", resolvedParams.id);
     console.log("[v0] Update body:", body);
     
     // Use admin client to bypass RLS
@@ -42,7 +44,7 @@ export async function PUT(
     const { data, error } = await client
       .from("offers")
       .update(body)
-      .eq("id", params.id)
+      .eq("id", resolvedParams.id)
       .select()
       .single();
 
@@ -67,14 +69,15 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log("[v0] DELETE /api/offers/[id] - deleting offer:", params.id);
+    const resolvedParams = await params;
+    console.log("[v0] DELETE /api/offers/[id] - deleting offer:", resolvedParams.id);
     
     // Use admin client to bypass RLS
     const client = await createAdminClient();
     const { error } = await client
       .from("offers")
       .delete()
-      .eq("id", params.id);
+      .eq("id", resolvedParams.id);
 
     if (error) {
       console.error("[v0] Delete error:", error);
