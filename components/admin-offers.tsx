@@ -241,10 +241,11 @@ export function AdminOffers() {
   const handleToggleOffer = async (offer: Offer) => {
     try {
       console.log("[v0] Toggling offer active status:", offer.id, "current:", offer.active);
-      const res = await fetch(`/api/offers/${offer.id}`, {
+      const { id, ...offerData } = offer;
+      const res = await fetch(`/api/offers/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...offer, active: !offer.active }),
+        body: JSON.stringify({ ...offerData, active: !offer.active }),
       })
       const data = await res.json();
       if (!res.ok) {
