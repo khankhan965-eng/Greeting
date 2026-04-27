@@ -37,6 +37,18 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
   useEffect(() => {
     const fetchServerData = async () => {
       try {
+        // First, check if there's saved data in localStorage
+        const savedData = localStorage.getItem("rtc_shop_data")
+        let shopData = getDefaultData()
+        
+        if (savedData) {
+          try {
+            shopData = JSON.parse(savedData)
+          } catch {
+            // If parsing fails, use default data
+          }
+        }
+
         const [statusResponse, scheduleResponse, offersResponse] = await Promise.all([
           fetch("/api/status"),
           fetch("/api/schedule"),
@@ -77,7 +89,7 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
         setSchedules(scheduleData)
         setOffers(offersData)
         setData({
-          ...getDefaultData(),
+          ...shopData,
           status: finalStatus,
           closeMessage: statusData.closeMessage,
         })

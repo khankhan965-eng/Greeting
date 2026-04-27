@@ -20,6 +20,18 @@ export default function AdminPage({ isAuthenticated, onAuthenticated, onLogout }
   useEffect(() => {
     const fetchServerStatus = async () => {
       try {
+        // First, check if there's saved data in localStorage
+        const savedData = localStorage.getItem("rtc_shop_data")
+        if (savedData) {
+          try {
+            const parsedData = JSON.parse(savedData)
+            setData(parsedData)
+            return
+          } catch {
+            // If parsing fails, fall through to default behavior
+          }
+        }
+
         const response = await fetch("/api/status")
         if (response.ok) {
           const statusData = await response.json()
@@ -54,6 +66,8 @@ export default function AdminPage({ isAuthenticated, onAuthenticated, onLogout }
 
   const handleDataUpdate = (newData: ShopData) => {
     setData(newData)
+    // Persist data to localStorage
+    localStorage.setItem("rtc_shop_data", JSON.stringify(newData))
   }
 
   return (
