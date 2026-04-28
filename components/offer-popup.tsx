@@ -3,6 +3,7 @@
 import { Offer } from "@/types"
 import { useEffect, useState } from "react"
 import { X } from "lucide-react"
+import { CTAButton } from "./cta-button"
 
 interface OfferPopupProps {
   offer: Offer
@@ -170,17 +171,7 @@ export function OfferPopup({ offer, onClose }: OfferPopupProps) {
             )}
 
             {/* CTA Button */}
-            <button
-              onClick={onClose}
-              className="w-full font-bold py-4 px-6 transition-all duration-200 text-base text-white rounded-2xl hover:shadow-lg active:scale-95"
-              style={{
-                backgroundColor: "#E8524F",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#D43D38")}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#E8524F")}
-            >
-              Abhi Free Coffee lo 🔥
-            </button>
+            <CTAButton onClick={onClose} text="Get Offer" />
 
             {/* Footer text */}
             <p 
