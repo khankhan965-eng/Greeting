@@ -13,9 +13,8 @@ export function OfferPopup({ offer, onClose }: OfferPopupProps) {
   const [timeLeft, setTimeLeft] = useState<{
     hours: string
     minutes: string
-    seconds: string
     expired: boolean
-  }>({ hours: "00", minutes: "00", seconds: "00", expired: false })
+  }>({ hours: "00", minutes: "00", expired: false })
 
   useEffect(() => {
     if (!offer.show_timer) return
@@ -29,7 +28,6 @@ export function OfferPopup({ offer, onClose }: OfferPopupProps) {
         setTimeLeft({
           hours: "00",
           minutes: "00",
-          seconds: "00",
           expired: true,
         })
         return
@@ -37,12 +35,10 @@ export function OfferPopup({ offer, onClose }: OfferPopupProps) {
 
       const hours = Math.floor(diff / (1000 * 60 * 60))
       const minutes = Math.floor((diff / (1000 * 60)) % 60)
-      const seconds = Math.floor((diff / 1000) % 60)
 
       setTimeLeft({
         hours: String(hours).padStart(2, "0"),
         minutes: String(minutes).padStart(2, "0"),
-        seconds: String(seconds).padStart(2, "0"),
         expired: false,
       })
     }
@@ -55,73 +51,117 @@ export function OfferPopup({ offer, onClose }: OfferPopupProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Subtle backdrop */}
+      {/* Dimmed background */}
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300"
         onClick={onClose}
         role="button"
         tabIndex={0}
         onKeyDown={(e) => e.key === "Escape" && onClose()}
       />
 
-      {/* Clean card with soft colors */}
+      {/* Modal card with light red theme */}
       <div className="relative max-w-md w-full animate-fadeInScale">
-        <div className="relative rounded-2xl bg-white overflow-hidden p-8 shadow-lg">
+        <div 
+          className="relative overflow-hidden p-8 shadow-lg border-0"
+          style={{
+            borderRadius: "16px",
+            backgroundColor: "#FFFFFF",
+          }}
+        >
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2 transition-colors duration-200 z-10"
+            style={{
+              color: "#E8524F",
+              backgroundColor: "#FFF0F0",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#FFE0E0")}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#FFF0F0")}
+            aria-label="Close offer"
+          >
+            <X size={24} strokeWidth={2} />
+          </button>
+
           {/* Content */}
           <div className="relative z-10">
-            {/* Close button */}
-            <button
-              onClick={onClose}
-              className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600"
-              aria-label="Close offer"
+            {/* Main Title */}
+            <h2 
+              className="text-3xl font-bold mb-3 pr-8 leading-tight text-center"
+              style={{ color: "#333333" }}
             >
-              <X size={24} strokeWidth={2} />
-            </button>
-
-            {/* Title */}
-            <h2 className="text-2xl font-bold text-gray-900 mb-3 pr-8 leading-tight">
               {offer.title}
             </h2>
 
-            {/* Description */}
-            <p className="text-gray-600 text-base leading-relaxed mb-6">
+            {/* Subtext */}
+            <p 
+              className="text-center text-base mb-6 font-medium"
+              style={{ color: "#666666" }}
+            >
               {offer.description}
             </p>
 
-            {/* Countdown Timer */}
+            {/* Timer Section */}
             {offer.show_timer && (
               <div className="mb-8">
                 {timeLeft.expired ? (
-                  <div className="bg-gray-100 border border-gray-200 rounded-xl px-6 py-3 text-center">
-                    <p className="text-gray-600 font-medium text-base">
+                  <div 
+                    className="rounded-2xl px-6 py-4 text-center border-2 border-solid"
+                    style={{
+                      backgroundColor: "#FFF0F0",
+                      borderColor: "#FFB3B3",
+                    }}
+                  >
+                    <p className="font-medium text-base" style={{ color: "#E8524F" }}>
                       Offer Expired
                     </p>
                   </div>
                 ) : (
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl px-6 py-5">
-                    <p className="text-gray-600 text-sm font-medium mb-4">
-                      Limited Time Offer
+                  <div 
+                    className="rounded-2xl px-6 py-5 text-center"
+                    style={{ backgroundColor: "#FFF0F0" }}
+                  >
+                    <p 
+                      className="text-sm font-medium mb-3"
+                      style={{ color: "#333333" }}
+                    >
+                      ⏰ Sirf 2 din ke liye
                     </p>
-                    <div className="flex justify-center gap-3">
+                    <div className="flex justify-center items-center gap-2">
                       <div className="flex flex-col items-center">
-                        <div className="text-3xl font-bold text-blue-600 font-mono">
+                        <div 
+                          className="text-2xl font-bold font-mono"
+                          style={{ color: "#FF6B6B" }}
+                        >
                           {timeLeft.hours}
                         </div>
-                        <p className="text-gray-500 text-xs mt-1 font-medium">hours</p>
+                        <p 
+                          className="text-xs mt-1 font-medium"
+                          style={{ color: "#666666" }}
+                        >
+                          hrs
+                        </p>
                       </div>
-                      <div className="text-2xl text-gray-400 self-start mt-1">:</div>
+                      <div 
+                        className="text-xl font-bold"
+                        style={{ color: "#FF6B6B" }}
+                      >
+                        :
+                      </div>
                       <div className="flex flex-col items-center">
-                        <div className="text-3xl font-bold text-blue-600 font-mono">
+                        <div 
+                          className="text-2xl font-bold font-mono"
+                          style={{ color: "#FF6B6B" }}
+                        >
                           {timeLeft.minutes}
                         </div>
-                        <p className="text-gray-500 text-xs mt-1 font-medium">mins</p>
-                      </div>
-                      <div className="text-2xl text-gray-400 self-start mt-1">:</div>
-                      <div className="flex flex-col items-center">
-                        <div className="text-3xl font-bold text-blue-600 font-mono">
-                          {timeLeft.seconds}
-                        </div>
-                        <p className="text-gray-500 text-xs mt-1 font-medium">secs</p>
+                        <p 
+                          className="text-xs mt-1 font-medium"
+                          style={{ color: "#666666" }}
+                        >
+                          min
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -132,13 +172,21 @@ export function OfferPopup({ offer, onClose }: OfferPopupProps) {
             {/* CTA Button */}
             <button
               onClick={onClose}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors text-base"
+              className="w-full font-bold py-4 px-6 transition-all duration-200 text-base text-white rounded-2xl hover:shadow-lg active:scale-95"
+              style={{
+                backgroundColor: "#E8524F",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#D43D38")}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#E8524F")}
             >
-              Get Offer
+              Abhi Free Coffee lo 🔥
             </button>
 
-            {/* Secondary text */}
-            <p className="text-gray-400 text-xs text-center mt-4">
+            {/* Footer text */}
+            <p 
+              className="text-xs text-center mt-4 font-medium"
+              style={{ color: "#999999" }}
+            >
               Valid for limited time only
             </p>
           </div>
@@ -150,7 +198,7 @@ export function OfferPopup({ offer, onClose }: OfferPopupProps) {
         @keyframes fadeInScale {
           from {
             opacity: 0;
-            transform: scale(0.95) translateY(-10px);
+            transform: scale(0.92) translateY(-20px);
           }
           to {
             opacity: 1;
@@ -159,12 +207,12 @@ export function OfferPopup({ offer, onClose }: OfferPopupProps) {
         }
 
         .animate-fadeInScale {
-          animation: fadeInScale 0.3s ease-out;
+          animation: fadeInScale 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
         @media (max-width: 640px) {
           .animate-fadeInScale {
-            animation: fadeInScale 0.25s ease-out;
+            animation: fadeInScale 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
           }
         }
       `}</style>
