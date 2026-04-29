@@ -252,7 +252,7 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
   </span>
 
   <span className="text-gray-400">
-    {" "}• Closes in {timeUntilClosing.hours}h {timeUntilClosing.minutes}m
+    {" "}| Closes in {timeUntilClosing.hours}h {timeUntilClosing.minutes}m
   </span>
 </p>
                     </div>
