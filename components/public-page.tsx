@@ -246,9 +246,15 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
                   {/* Status Line with Time Until Closing */}
                   {data.status === "open" && timeUntilClosing ? (
                     <div className="pt-3 border-t border-gray-200">
-                      <p className="text-xs text-green-600 font-semibold">
-                        Open • Closes in {timeUntilClosing.hours}h {timeUntilClosing.minutes}m
-                      </p>
+                      <p className="text-xs mt-1">
+  <span className="text-green-600 font-semibold">
+    Open
+  </span>
+
+  <span className="text-gray-400">
+    {" "}• Closes in {timeUntilClosing.hours}h {timeUntilClosing.minutes}m
+  </span>
+</p>
                     </div>
                   ) : (
                     <div className="pt-3 border-t border-gray-200">
