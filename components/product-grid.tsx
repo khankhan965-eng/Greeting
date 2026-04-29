@@ -29,42 +29,41 @@ export default function ProductGrid({ products, showUnavailable }: ProductGridPr
       {products.map((product) => (
         <div
           key={product.id}
-          className={`bg-white rounded-xl p-6 border transition-all hover:shadow-lg product-card ${
+          className={`bg-white rounded-lg shadow-sm border transition-all hover:shadow-md product-card overflow-hidden ${
             product.available
-              ? "border-green-300 hover:border-green-500 hover:shadow-md opacity-100"
-              : "border-gray-300 opacity-50"
+              ? "border-gray-200 hover:border-primary/50 opacity-100"
+              : "border-gray-200 opacity-60"
           }`}
         >
-          {product.available && productBadges[product.name] && (
-            <div className="mb-2">
-              <span className="inline-block px-2 py-1 text-xs font-semibold bg-primary/10 text-primary rounded-full">
+          {/* Header with Badge */}
+          <div className="px-5 pt-4 pb-2">
+            {product.available && productBadges[product.name] && (
+              <span className="inline-block px-2 py-1 text-xs font-semibold bg-primary/10 text-primary rounded-full mb-2">
                 {productBadges[product.name]}
               </span>
-            </div>
-          )}
-
-          {/* Product Info */}
-          <div className="mb-4">
-            <h3 className="text-xl font-bold text-foreground">{product.name}</h3>
-            <p className="text-sm text-muted-foreground mt-1">{product.desc}</p>
+            )}
           </div>
 
-          {/* Footer with Price and Availability Badge */}
-          <div className="flex justify-between items-end">
-            <span className="text-2xl font-bold text-primary">₹{product.price}</span>
+          {/* Product Info */}
+          <div className="px-5 pb-4">
+            <h3 className="text-lg font-bold text-foreground">{product.name}</h3>
+            <p className="text-sm text-muted-foreground mt-2">{product.desc}</p>
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-gray-100"></div>
+
+          {/* Footer with Price and Availability */}
+          <div className="px-5 py-4 flex items-center justify-between">
+            <span className="text-2xl font-bold text-green-600">₹{product.price}</span>
             <div
-              className={`flex items-center justify-center w-10 h-10 rounded-full ${
+              className={`flex items-center justify-center w-9 h-9 rounded-full ${
                 product.available ? "bg-green-100 text-green-600" : "bg-gray-200 text-gray-500"
               }`}
             >
               {product.available ? <CheckCircle2 size={20} /> : <X size={20} />}
             </div>
           </div>
-
-          {/* Availability Text */}
-          <p className={`text-xs font-semibold mt-3 ${product.available ? "text-green-600" : "text-gray-500"}`}>
-            {product.available ? "Available" : "Not available"}
-          </p>
         </div>
       ))}
     </div>

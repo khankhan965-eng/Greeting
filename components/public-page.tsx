@@ -11,7 +11,8 @@ import Toast from "./toast"
 import { OfferPopup } from "./offer-popup"
 import type { ShopData, Offer } from "@/types"
 import { getDefaultData } from "@/lib/storage"
-import { isShopOpenToday, getNextOpeningTime } from "@/lib/schedule-utils"
+import { isShopOpenToday, getNextOpeningTime, getCurrentTimeInIST, parseTimeToMinutes } from "@/lib/schedule-utils"
+import { Clock, MapPin } from "lucide-react"
 
 interface PublicPageProps {
   onAdminClick: () => void
@@ -22,7 +23,8 @@ interface TimeSlot {
   day_of_week: number
   opening_time: string
   closing_time: string
-  is_active: boolean
+  is_closed?: boolean
+  is_active?: boolean
 }
 
 export default function PublicPage({ onAdminClick }: PublicPageProps) {
@@ -136,6 +138,51 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
 
   const current = statusDisplay[data.status || "open"] || statusDisplay["open"]
 
+  // Calculate time until closing
+  const getTimeUntilClosing = () => {
+    if (!schedules || schedules.length === 0) return null
+    
+    const today = new Date().getDay()
+    const todaySchedule = schedules.find(s => {
+      const isActive = s.is_active !== false && !s.is_closed
+      return s.day_of_week === today && isActive
+    })
+    
+    if (!todaySchedule) return null
+    
+    const currentMinutes = getCurrentTimeInIST()
+    const closingMinutes = parseTimeToMinutes(todaySchedule.closing_time)
+    const minutesLeft = closingMinutes - currentMinutes
+    
+    if (minutesLeft <= 0) return null
+    
+    const hours = Math.floor(minutesLeft / 60)
+    const minutes = minutesLeft % 60
+    
+    return { hours, minutes }
+  }
+
+  // Get opening and closing times for today
+  const getTodayTiming = () => {
+    if (!schedules || schedules.length === 0) {
+      console.log("[v0] No schedules found")
+      return null
+    }
+    
+    const today = new Date().getDay()
+    // Support both is_active (from schema) and is_closed (from code logic)
+    const todaySchedule = schedules.find(s => {
+      const isActive = s.is_active !== false && !s.is_closed
+      return s.day_of_week === today && isActive
+    })
+    
+    console.log("[v0] Today:", today, "Schedules:", schedules, "Schedule found:", todaySchedule)
+    return todaySchedule || null
+  }
+
+  const timeUntilClosing = getTimeUntilClosing()
+  const todayTiming = getTodayTiming()
+
   return (
     <>
       {showSplash && <SplashScreen />}
@@ -153,34 +200,68 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
 
         {/* Main Content */}
         <div className="flex-1 max-w-6xl mx-auto w-full px-4 py-8 sm:py-12">
-          {/* Shop Status Card */}
-          <div className="bg-white rounded-2xl shadow-lg border border-primary/20 p-8 sm:p-12 mb-12 text-center">
-            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-2">Shop Status</h2>
-            <p className="text-muted-foreground mb-8">Live Operating Status</p>
+          {/* Status and Timing Cards - 2 Column Grid */}
+          <div className="grid grid-cols-2 gap-4 mb-12">
+            {/* Shop Status Card - Compact */}
+            <div className="bg-white rounded-lg shadow-sm border border-primary/20 p-4 text-center">
+              <p className="text-xs text-muted-foreground mb-3">Shop Status</p>
 
-            {/* Large Circular Status Badge */}
-            <div className="flex justify-center mb-8">
-              <div
-                className={`w-32 h-32 sm:w-40 sm:h-40 rounded-full flex items-center justify-center text-4xl sm:text-5xl font-bold text-white shadow-xl bg-gradient-to-br ${current.color} ${
-                  data.status === "open" ? "status-pulse status-glow-green" : "status-glow-red"
-                }`}
-              >
-                {current.badge}
+              {/* Circular Status Badge - Smaller */}
+              <div className="flex justify-center mb-4">
+                <div
+                  className={`w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold text-white shadow-lg bg-gradient-to-br ${current.color} ${
+                    data.status === "open" ? "status-pulse status-glow-green" : "status-glow-red"
+                  }`}
+                >
+                  {current.badge}
+                </div>
+              </div>
+
+              {/* Status Message */}
+              <div>
+                <h3 className="text-lg font-bold text-foreground mb-0.5">{current.message}</h3>
+                {data.status === "closed" && (
+                  <p className="text-xs text-muted-foreground line-clamp-2">{data.closeMessage}</p>
+                )}
               </div>
             </div>
 
-            {/* Status Message */}
-            <div>
-              {data.status === "open" ? (
-                <>
-                  <h3 className="text-3xl sm:text-4xl font-bold text-foreground mb-2">We are Open</h3>
-                  <p className="text-lg text-muted-foreground">Welcome! Come enjoy our fresh tea</p>
-                </>
+            {/* Shop Timing Card */}
+            <div className="bg-white rounded-lg shadow-sm border border-primary/20 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Clock size={16} className="text-primary" />
+                <p className="text-xs font-semibold text-muted-foreground">Shop Timing</p>
+              </div>
+
+              {todayTiming ? (
+                <div>
+                  {/* Opening and Closing Times */}
+                  <div className="mb-4">
+                    <p className="text-lg font-bold text-foreground">
+                      {todayTiming.opening_time} – {todayTiming.closing_time}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">Today&apos;s hours</p>
+                  </div>
+
+                  {/* Status Line with Time Until Closing */}
+                  {data.status === "open" && timeUntilClosing ? (
+                    <div className="pt-3 border-t border-gray-200">
+                      <p className="text-xs text-green-600 font-semibold">
+                        Open • Closes in {timeUntilClosing.hours}h {timeUntilClosing.minutes}m
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="pt-3 border-t border-gray-200">
+                      <p className="text-xs text-red-600 font-semibold">
+                        Closed
+                      </p>
+                    </div>
+                  )}
+                </div>
               ) : (
-                <>
-                  <h3 className="text-3xl sm:text-4xl font-bold text-foreground mb-2">We are Closed</h3>
-                  <p className="text-lg text-muted-foreground">{data.closeMessage}</p>
-                </>
+                <div>
+                  <p className="text-xs text-muted-foreground">No schedule available</p>
+                </div>
               )}
             </div>
           </div>
