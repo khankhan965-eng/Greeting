@@ -23,7 +23,8 @@ interface TimeSlot {
   day_of_week: number
   opening_time: string
   closing_time: string
-  is_active: boolean
+  is_closed?: boolean
+  is_active?: boolean
 }
 
 export default function PublicPage({ onAdminClick }: PublicPageProps) {
@@ -142,7 +143,10 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
     if (!schedules || schedules.length === 0) return null
     
     const today = new Date().getDay()
-    const todaySchedule = schedules.find(s => s.day_of_week === today && s.is_active)
+    const todaySchedule = schedules.find(s => {
+      const isActive = s.is_active !== false && !s.is_closed
+      return s.day_of_week === today && isActive
+    })
     
     if (!todaySchedule) return null
     
@@ -160,11 +164,19 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
 
   // Get opening and closing times for today
   const getTodayTiming = () => {
-    if (!schedules || schedules.length === 0) return null
+    if (!schedules || schedules.length === 0) {
+      console.log("[v0] No schedules found")
+      return null
+    }
     
     const today = new Date().getDay()
-    const todaySchedule = schedules.find(s => s.day_of_week === today && s.is_active)
+    // Support both is_active (from schema) and is_closed (from code logic)
+    const todaySchedule = schedules.find(s => {
+      const isActive = s.is_active !== false && !s.is_closed
+      return s.day_of_week === today && isActive
+    })
     
+    console.log("[v0] Today:", today, "Schedules:", schedules, "Schedule found:", todaySchedule)
     return todaySchedule || null
   }
 
@@ -189,15 +201,15 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
         {/* Main Content */}
         <div className="flex-1 max-w-6xl mx-auto w-full px-4 py-8 sm:py-12">
           {/* Status and Timing Cards - 2 Column Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+          <div className="grid grid-cols-2 gap-4 mb-12">
             {/* Shop Status Card - Compact */}
-            <div className="bg-white rounded-xl shadow-md border border-primary/20 p-6 text-center">
-              <p className="text-sm text-muted-foreground mb-4">Shop Status</p>
+            <div className="bg-white rounded-lg shadow-sm border border-primary/20 p-4 text-center">
+              <p className="text-xs text-muted-foreground mb-3">Shop Status</p>
 
               {/* Circular Status Badge - Smaller */}
-              <div className="flex justify-center mb-6">
+              <div className="flex justify-center mb-4">
                 <div
-                  className={`w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold text-white shadow-lg bg-gradient-to-br ${current.color} ${
+                  className={`w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold text-white shadow-lg bg-gradient-to-br ${current.color} ${
                     data.status === "open" ? "status-pulse status-glow-green" : "status-glow-red"
                   }`}
                 >
@@ -207,25 +219,25 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
 
               {/* Status Message */}
               <div>
-                <h3 className="text-xl font-bold text-foreground mb-1">{current.message}</h3>
+                <h3 className="text-lg font-bold text-foreground mb-0.5">{current.message}</h3>
                 {data.status === "closed" && (
-                  <p className="text-xs text-muted-foreground">{data.closeMessage}</p>
+                  <p className="text-xs text-muted-foreground line-clamp-2">{data.closeMessage}</p>
                 )}
               </div>
             </div>
 
             {/* Shop Timing Card */}
-            <div className="bg-white rounded-xl shadow-md border border-primary/20 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Clock size={18} className="text-primary" />
-                <p className="text-sm font-semibold text-muted-foreground">Shop Timing</p>
+            <div className="bg-white rounded-lg shadow-sm border border-primary/20 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Clock size={16} className="text-primary" />
+                <p className="text-xs font-semibold text-muted-foreground">Shop Timing</p>
               </div>
 
               {todayTiming ? (
                 <div>
                   {/* Opening and Closing Times */}
-                  <div className="mb-6">
-                    <p className="text-2xl font-bold text-foreground">
+                  <div className="mb-4">
+                    <p className="text-lg font-bold text-foreground">
                       {todayTiming.opening_time} – {todayTiming.closing_time}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">Today&apos;s hours</p>
@@ -233,14 +245,14 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
 
                   {/* Status Line with Time Until Closing */}
                   {data.status === "open" && timeUntilClosing ? (
-                    <div className="pt-4 border-t border-gray-200">
-                      <p className="text-sm text-green-600 font-semibold">
+                    <div className="pt-3 border-t border-gray-200">
+                      <p className="text-xs text-green-600 font-semibold">
                         Open • Closes in {timeUntilClosing.hours}h {timeUntilClosing.minutes}m
                       </p>
                     </div>
                   ) : (
-                    <div className="pt-4 border-t border-gray-200">
-                      <p className="text-sm text-red-600 font-semibold">
+                    <div className="pt-3 border-t border-gray-200">
+                      <p className="text-xs text-red-600 font-semibold">
                         Closed
                       </p>
                     </div>
@@ -248,7 +260,7 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
                 </div>
               ) : (
                 <div>
-                  <p className="text-sm text-muted-foreground">No schedule available</p>
+                  <p className="text-xs text-muted-foreground">No schedule available</p>
                 </div>
               )}
             </div>
