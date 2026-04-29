@@ -49,12 +49,12 @@ export function isShopOpenInTimeSlot(openingTime: string, closingTime: string): 
 
 // Check if shop is open today based on schedule
 export function isShopOpenToday(
-  schedules: Array<{ day_of_week: number; opening_time: string; closing_time: string; is_closed: boolean }>,
+  schedules: Array<{ day_of_week: number; opening_time: string; closing_time: string; is_closed?: boolean }>,
 ): boolean {
   const today = getCurrentDayOfWeekIST()
 
   // Filter active (not closed) schedules for today
-  const todaySchedules = schedules.filter((s) => !s.is_closed && s.day_of_week === today)
+  const todaySchedules = schedules.filter((s) => s.is_closed !== true && s.day_of_week === today)
 
   // If no schedule for today, shop is closed
   if (todaySchedules.length === 0) return false
@@ -65,12 +65,12 @@ export function isShopOpenToday(
 
 // Get current active slot if shop is open
 export function getCurrentActiveSlot(
-  schedules: Array<{ day_of_week: number; opening_time: string; closing_time: string; is_closed: boolean }>,
+  schedules: Array<{ day_of_week: number; opening_time: string; closing_time: string; is_closed?: boolean }>,
 ): { opening_time: string; closing_time: string } | null {
   const today = getCurrentDayOfWeekIST()
   const currentMinutes = getCurrentTimeInIST()
 
-  const activeSchedules = schedules.filter((s) => !s.is_closed)
+  const activeSchedules = schedules.filter((s) => s.is_closed !== true)
   if (activeSchedules.length === 0) return null
 
   // Check today's time slots
@@ -95,12 +95,12 @@ export function getCurrentActiveSlot(
 
 // Get next opening time based on schedule
 export function getNextOpeningTime(
-  schedules: Array<{ day_of_week: number; opening_time: string; closing_time: string; is_closed: boolean }>,
+  schedules: Array<{ day_of_week: number; opening_time: string; closing_time: string; is_closed?: boolean }>,
 ): string | null {
   const today = getCurrentDayOfWeekIST()
   const currentMinutes = getCurrentTimeInIST()
 
-  const activeSchedules = schedules.filter((s) => !s.is_closed)
+  const activeSchedules = schedules.filter((s) => s.is_closed !== true)
   if (activeSchedules.length === 0) return null
 
   // Check today's remaining time slots
@@ -132,7 +132,7 @@ export function getNextOpeningTime(
 
 // Get time remaining until closing (in minutes and formatted string)
 export function getTimeUntilClosing(
-  schedules: Array<{ day_of_week: number; opening_time: string; closing_time: string; is_closed: boolean }>,
+  schedules: Array<{ day_of_week: number; opening_time: string; closing_time: string; is_closed?: boolean }>,
 ): { hours: number; minutes: number; formatted: string } | null {
   const activeSlot = getCurrentActiveSlot(schedules)
   if (!activeSlot) return null

@@ -58,9 +58,9 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
           fetch("/api/offers"),
         ])
 
-        let statusData = { status: "open", closeMessage: "" }
-        let scheduleData = []
-        let offersData = []
+        let statusData = { status: "open" as const, closeMessage: "" }
+        let scheduleData: TimeSlot[] = []
+        let offersData: Offer[] = []
 
         if (statusResponse.ok) {
           statusData = await statusResponse.json()
@@ -75,7 +75,7 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
           offersData = await offersResponse.json()
         }
 
-        let finalStatus = statusData.status
+        let finalStatus: "open" | "closed" = (statusData.status === "open" || statusData.status === "closed") ? statusData.status : "open"
         let finalMessage = statusData.closeMessage
         
         if (scheduleData.length > 0) {
