@@ -11,7 +11,7 @@ import Toast from "./toast"
 import { OfferPopup } from "./offer-popup"
 import type { ShopData, Offer } from "@/types"
 import { getDefaultData } from "@/lib/storage"
-import { isShopOpenToday, getNextOpeningTime, getCurrentTimeInIST, parseTimeToMinutes } from "@/lib/schedule-utils"
+import { isShopOpenToday, getNextOpeningTime, getCurrentTimeInIST, parseTimeToMinutes, getCurrentActiveSlot, getTimeUntilClosing } from "@/lib/schedule-utils"
 import { Clock, MapPin } from "lucide-react"
 
 interface PublicPageProps {
@@ -35,6 +35,7 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null)
   const [offers, setOffers] = useState<Offer[]>([])
   const [visibleOffer, setVisibleOffer] = useState<Offer | null>(null)
+  const [, setUpdateTrigger] = useState(0) // Force re-render every minute
 
   useEffect(() => {
     const fetchServerData = async () => {
@@ -75,12 +76,14 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
         }
 
         let finalStatus = statusData.status
+        let finalMessage = statusData.closeMessage
+        
         if (scheduleData.length > 0) {
           const isOpen = isShopOpenToday(scheduleData)
           if (!isOpen) {
             const nextOpening = getNextOpeningTime(scheduleData)
             finalStatus = "closed"
-            statusData.closeMessage = nextOpening
+            finalMessage = nextOpening
               ? `Closed. Will open at ${nextOpening}`
               : "Closed. Check schedule for opening times"
           } else {
@@ -93,7 +96,7 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
         setData({
           ...shopData,
           status: finalStatus,
-          closeMessage: statusData.closeMessage,
+          closeMessage: finalMessage,
         })
 
         // Show first active offer
@@ -123,7 +126,15 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
       setShowSplash(false)
     }, 1500)
 
-    return () => clearTimeout(splashTimer)
+    // Update UI every 1 minute for real-time timing updates
+    const updateInterval = setInterval(() => {
+      setUpdateTrigger((prev) => prev + 1)
+    }, 60000) // 60 seconds = 1 minute
+
+    return () => {
+      clearTimeout(splashTimer)
+      clearInterval(updateInterval)
+    }
   }, [])
 
   if (!data) return <div className="p-4">Loading...</div>
@@ -138,50 +149,10 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
 
   const current = statusDisplay[data.status || "open"] || statusDisplay["open"]
 
-  // Calculate time until closing
-  const getTimeUntilClosing = () => {
-    if (!schedules || schedules.length === 0) return null
-    
-    const today = new Date().getDay()
-    const todaySchedule = schedules.find(s => {
-      const isActive = s.is_active !== false && !s.is_closed
-      return s.day_of_week === today && isActive
-    })
-    
-    if (!todaySchedule) return null
-    
-    const currentMinutes = getCurrentTimeInIST()
-    const closingMinutes = parseTimeToMinutes(todaySchedule.closing_time)
-    const minutesLeft = closingMinutes - currentMinutes
-    
-    if (minutesLeft <= 0) return null
-    
-    const hours = Math.floor(minutesLeft / 60)
-    const minutes = minutesLeft % 60
-    
-    return { hours, minutes }
-  }
-
-  // Get opening and closing times for today
-  const getTodayTiming = () => {
-    if (!schedules || schedules.length === 0) {
-      console.log("[v0] No schedules found")
-      return null
-    }
-    
-    const today = new Date().getDay()
-    // Support both is_active (from schema) and is_closed (from code logic)
-    const todaySchedule = schedules.find(s => {
-      const isActive = s.is_active !== false && !s.is_closed
-      return s.day_of_week === today && isActive
-    })
-    
-    console.log("[v0] Today:", today, "Schedules:", schedules, "Schedule found:", todaySchedule)
-    return todaySchedule || null
-  }
-
-  const timeUntilClosing = getTimeUntilClosing()
-  const todayTiming = getTodayTiming()
+  // Get current active slot and time until closing (updates every minute via updateTrigger)
+  const currentActiveSlot = getCurrentActiveSlot(schedules)
+  const timeUntilClosing = getTimeUntilClosing(schedules)
+  const nextOpeningTime = getNextOpeningTime(schedules)
 
   return (
     <>
@@ -233,40 +204,36 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
                 <p className="text-xs font-semibold text-muted-foreground">Shop Timing</p>
               </div>
 
-              {todayTiming ? (
+              {currentActiveSlot ? (
                 <div>
                   {/* Opening and Closing Times */}
                   <div className="mb-4">
                     <p className="text-lg font-bold text-foreground">
-                      {todayTiming.opening_time} – {todayTiming.closing_time}
+                      {currentActiveSlot.opening_time} – {currentActiveSlot.closing_time}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">Today&apos;s hours</p>
                   </div>
 
                   {/* Status Line with Time Until Closing */}
-                  {data.status === "open" && timeUntilClosing ? (
+                  {timeUntilClosing ? (
                     <div className="pt-3 border-t border-gray-200">
                       <p className="text-xs mt-1">
-  <span className="text-green-600 font-semibold">
-    Open
-  </span>
-
-  <span className="text-gray-400">
-    {" "}| Closes in {timeUntilClosing.hours}h {timeUntilClosing.minutes}m
-  </span>
-</p>
-                    </div>
-                  ) : (
-                    <div className="pt-3 border-t border-gray-200">
-                      <p className="text-xs text-red-600 font-semibold">
-                        Closed
+                        <span className="text-green-600 font-semibold">Open</span>
+                        <span className="text-gray-400">{" "}| Closes at {currentActiveSlot.closing_time}</span>
                       </p>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               ) : (
                 <div>
-                  <p className="text-xs text-muted-foreground">No schedule available</p>
+                  {nextOpeningTime ? (
+                    <>
+                      <p className="text-xs text-red-600 font-semibold mb-2">Closed</p>
+                      <p className="text-sm font-bold text-foreground">Opens at {nextOpeningTime}</p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">No schedule available</p>
+                  )}
                 </div>
               )}
             </div>

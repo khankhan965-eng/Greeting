@@ -63,6 +63,36 @@ export function isShopOpenToday(
   return todaySchedules.some((s) => isShopOpenInTimeSlot(s.opening_time, s.closing_time))
 }
 
+// Get current active slot if shop is open
+export function getCurrentActiveSlot(
+  schedules: Array<{ day_of_week: number; opening_time: string; closing_time: string; is_closed: boolean }>,
+): { opening_time: string; closing_time: string } | null {
+  const today = getCurrentDayOfWeekIST()
+  const currentMinutes = getCurrentTimeInIST()
+
+  const activeSchedules = schedules.filter((s) => !s.is_closed)
+  if (activeSchedules.length === 0) return null
+
+  // Check today's time slots
+  const todaySchedules = activeSchedules.filter((s) => s.day_of_week === today)
+
+  for (const schedule of todaySchedules) {
+    const openMinutes = parseTimeToMinutes(schedule.opening_time)
+    const closeMinutes = parseTimeToMinutes(schedule.closing_time)
+
+    // Handle closing time past midnight (e.g., 10 PM to 2 AM)
+    if (closeMinutes < openMinutes) {
+      if (currentMinutes >= openMinutes || currentMinutes < closeMinutes) {
+        return { opening_time: schedule.opening_time, closing_time: schedule.closing_time }
+      }
+    } else if (currentMinutes >= openMinutes && currentMinutes < closeMinutes) {
+      return { opening_time: schedule.opening_time, closing_time: schedule.closing_time }
+    }
+  }
+
+  return null
+}
+
 // Get next opening time based on schedule
 export function getNextOpeningTime(
   schedules: Array<{ day_of_week: number; opening_time: string; closing_time: string; is_closed: boolean }>,
@@ -98,4 +128,36 @@ export function getNextOpeningTime(
   }
 
   return null
+}
+
+// Get time remaining until closing (in minutes and formatted string)
+export function getTimeUntilClosing(
+  schedules: Array<{ day_of_week: number; opening_time: string; closing_time: string; is_closed: boolean }>,
+): { hours: number; minutes: number; formatted: string } | null {
+  const activeSlot = getCurrentActiveSlot(schedules)
+  if (!activeSlot) return null
+
+  const currentMinutes = getCurrentTimeInIST()
+  const closingMinutes = parseTimeToMinutes(activeSlot.closing_time)
+  
+  let minutesLeft = closingMinutes - currentMinutes
+  
+  // Handle closing time past midnight
+  if (closingMinutes < parseTimeToMinutes(activeSlot.opening_time)) {
+    if (currentMinutes < closingMinutes) {
+      // Current time is after midnight, closing time is also after midnight
+      minutesLeft = closingMinutes - currentMinutes
+    } else {
+      // Current time is before midnight, closing time is after midnight
+      minutesLeft = (24 * 60 - currentMinutes) + closingMinutes
+    }
+  }
+
+  if (minutesLeft <= 0) return null
+
+  const hours = Math.floor(minutesLeft / 60)
+  const minutes = minutesLeft % 60
+  const formatted = `${hours}h ${minutes}m`
+
+  return { hours, minutes, formatted }
 }
