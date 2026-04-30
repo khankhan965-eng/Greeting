@@ -11,7 +11,7 @@ import Toast from "./toast"
 import { OfferPopup } from "./offer-popup"
 import type { ShopData, Offer } from "@/types"
 import { getDefaultData } from "@/lib/storage"
-import { isShopOpenToday, getNextOpeningTime, getCurrentTimeInIST, parseTimeToMinutes, getCurrentActiveSlot, getTimeUntilClosing, formatTodaySlots, formatTime12Hour } from "@/lib/schedule-utils"
+import { isShopOpenToday, getNextOpeningTime, getCurrentTimeInIST, parseTimeToMinutes, getCurrentActiveSlot, getTimeUntilClosing, formatTime12Hour } from "@/lib/schedule-utils"
 import { Clock, MapPin } from "lucide-react"
 
 interface PublicPageProps {
@@ -206,15 +206,15 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
 
               {currentActiveSlot ? (
                 <div>
-                  {/* Today's All Time Slots */}
+                  {/* Current Active Slot Only */}
                   <div className="mb-4">
                     <p className="text-sm font-bold text-foreground">
-                      {formatTodaySlots(schedules)}
+                      {formatTime12Hour(currentActiveSlot.opening_time)} – {formatTime12Hour(currentActiveSlot.closing_time)}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">Today&apos;s hours</p>
+                    <p className="text-xs text-muted-foreground mt-1">Current slot</p>
                   </div>
 
-                  {/* Status Line with Current Slot */}
+                  {/* Status Line with Time Until Closing */}
                   {timeUntilClosing ? (
                     <div className="pt-3 border-t border-gray-200">
                       <p className="text-xs mt-1">
@@ -230,7 +230,6 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
                     <>
                       <p className="text-xs text-red-600 font-semibold mb-2">Closed</p>
                       <p className="text-sm font-bold text-foreground">Opens at {formatTime12Hour(nextOpeningTime)}</p>
-                      <p className="text-xs text-muted-foreground mt-1">Today&apos;s hours: {formatTodaySlots(schedules)}</p>
                     </>
                   ) : (
                     <p className="text-xs text-muted-foreground">No schedule available</p>
