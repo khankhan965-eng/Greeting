@@ -125,10 +125,14 @@ export function getCurrentActiveSlot(
   return null
 }
 
-// Get next opening time based on schedule
-export function getNextOpeningTime(
+// Get next slot with information about whether it's today or tomorrow
+export function getNextSlotInfo(
   schedules: Array<{ day_of_week: number; opening_time: string; closing_time: string; is_closed?: boolean }>,
-): string | null {
+): {
+  slot: { opening_time: string; closing_time: string };
+  isToday: boolean;
+  day: number;
+} | null {
   const today = getCurrentDayOfWeekIST()
   const currentMinutes = getCurrentTimeInIST()
 
@@ -143,7 +147,11 @@ export function getNextOpeningTime(
   for (const schedule of todaySchedules) {
     const openMinutes = parseTimeToMinutes(schedule.opening_time)
     if (openMinutes > currentMinutes) {
-      return schedule.opening_time
+      return {
+        slot: { opening_time: schedule.opening_time, closing_time: schedule.closing_time },
+        isToday: true,
+        day: today,
+      }
     }
   }
 
@@ -155,7 +163,11 @@ export function getNextOpeningTime(
       .sort((a, b) => parseTimeToMinutes(a.opening_time) - parseTimeToMinutes(b.opening_time))
 
     if (nextDaySchedules.length > 0) {
-      return nextDaySchedules[0].opening_time
+      return {
+        slot: { opening_time: nextDaySchedules[0].opening_time, closing_time: nextDaySchedules[0].closing_time },
+        isToday: false,
+        day: nextDay,
+      }
     }
   }
 

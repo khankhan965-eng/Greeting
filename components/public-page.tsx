@@ -11,7 +11,7 @@ import Toast from "./toast"
 import { OfferPopup } from "./offer-popup"
 import type { ShopData, Offer } from "@/types"
 import { getDefaultData } from "@/lib/storage"
-import { isShopOpenToday, getNextOpeningTime, getCurrentTimeInIST, parseTimeToMinutes, getCurrentActiveSlot, getTimeUntilClosing, formatTime12Hour } from "@/lib/schedule-utils"
+import { isShopOpenToday, getNextSlotInfo, getCurrentTimeInIST, parseTimeToMinutes, getCurrentActiveSlot, getTimeUntilClosing, formatTime12Hour } from "@/lib/schedule-utils"
 import { Clock, MapPin } from "lucide-react"
 
 interface PublicPageProps {
@@ -152,7 +152,7 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
   // Get current active slot and time until closing (updates every minute via updateTrigger)
   const currentActiveSlot = getCurrentActiveSlot(schedules)
   const timeUntilClosing = getTimeUntilClosing(schedules)
-  const nextOpeningTime = getNextOpeningTime(schedules)
+  const nextSlotInfo = getNextSlotInfo(schedules)
 
   return (
     <>
@@ -215,21 +215,31 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
                   </div>
 
                   {/* Status Line with Time Until Closing */}
-                  {timeUntilClosing ? (
-                    <div className="pt-3 border-t border-gray-200">
-                      <p className="text-xs mt-1">
-                        <span className="text-green-600 font-semibold">Open</span>
-                        <span className="text-gray-400">{" "}| Closes at {formatTime12Hour(currentActiveSlot.closing_time)}</span>
-                      </p>
-                    </div>
-                  ) : null}
+                  <div className="pt-3 border-t border-gray-200">
+                    <p className="text-xs mt-1">
+                      <span className="text-green-600 font-semibold">Open</span>
+                      <span className="text-gray-400">{" "}• Closes at {formatTime12Hour(currentActiveSlot.closing_time)}</span>
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <div>
-                  {nextOpeningTime ? (
+                  {nextSlotInfo ? (
                     <>
-                      <p className="text-xs text-red-600 font-semibold mb-2">Closed</p>
-                      <p className="text-sm font-bold text-foreground">Opens at {formatTime12Hour(nextOpeningTime)}</p>
+                      <div className="mb-4">
+                        <p className="text-sm font-bold text-foreground">
+                          {formatTime12Hour(nextSlotInfo.slot.opening_time)} – {formatTime12Hour(nextSlotInfo.slot.closing_time)}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">Next slot</p>
+                      </div>
+                      <div className="pt-3 border-t border-gray-200">
+                        <p className="text-xs mt-1">
+                          <span className="text-red-600 font-semibold">Closed</span>
+                          <span className="text-gray-400">
+                            {" "}• Opens {nextSlotInfo.isToday ? "at" : "tomorrow at"} {formatTime12Hour(nextSlotInfo.slot.opening_time)}
+                          </span>
+                        </p>
+                      </div>
                     </>
                   ) : (
                     <p className="text-xs text-muted-foreground">No schedule available</p>
