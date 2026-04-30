@@ -81,10 +81,10 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
         if (scheduleData.length > 0) {
           const isOpen = isShopOpenToday(scheduleData)
           if (!isOpen) {
-            const nextOpening = getNextOpeningTime(scheduleData)
+            const nextSlot = getNextSlotInfo(scheduleData)
             finalStatus = "closed"
-            finalMessage = nextOpening
-              ? `Closed. Will open at ${nextOpening}`
+            finalMessage = nextSlot
+              ? `Closed. Will open ${nextSlot.isToday ? "at" : "tomorrow at"} ${nextSlot.slot.opening_time}`
               : "Closed. Check schedule for opening times"
           } else {
             finalStatus = "open"
