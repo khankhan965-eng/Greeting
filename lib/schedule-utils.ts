@@ -47,46 +47,78 @@ export function isShopOpenInTimeSlot(openingTime: string, closingTime: string): 
   return currentMinutes >= openMinutes && currentMinutes < closeMinutes
 }
 
+// Convert 24-hour time to 12-hour format (HH:MM → HH:MM AM/PM)
+export function formatTime12Hour(time24: string): string {
+  if (!time24) return ""
+  
+  const [hours, minutes] = time24.split(":")
+  const hour = Number.parseInt(hours, 10)
+  const isAM = hour < 12
+  const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
+  
+  return `${String(hour12).padStart(2, "0")}:${minutes} ${isAM ? "AM" : "PM"}`
+}
+
+// Get all active time slots for today
+export function getTodaySlots(
+  schedules: Array<{ day_of_week: number; opening_time: string; closing_time: string; is_closed?: boolean }>,
+): Array<{ opening_time: string; closing_time: string }> {
+  const today = getCurrentDayOfWeekIST()
+  
+  const todaySchedules = schedules
+    .filter((s) => s.is_closed !== true && s.day_of_week === today)
+    .sort((a, b) => parseTimeToMinutes(a.opening_time) - parseTimeToMinutes(b.opening_time))
+  
+  return todaySchedules.map((s) => ({
+    opening_time: s.opening_time,
+    closing_time: s.closing_time,
+  }))
+}
+
+// Format today's slots as a display string (e.g., "09:10 AM – 12:45 PM, 05:10 PM – 10:45 PM")
+export function formatTodaySlots(
+  schedules: Array<{ day_of_week: number; opening_time: string; closing_time: string; is_closed?: boolean }>,
+): string {
+  const slots = getTodaySlots(schedules)
+  
+  if (slots.length === 0) return "Closed Today"
+  
+  return slots
+    .map((s) => `${formatTime12Hour(s.opening_time)} – ${formatTime12Hour(s.closing_time)}`)
+    .join(", ")
+}
+
 // Check if shop is open today based on schedule
 export function isShopOpenToday(
   schedules: Array<{ day_of_week: number; opening_time: string; closing_time: string; is_closed?: boolean }>,
 ): boolean {
-  const today = getCurrentDayOfWeekIST()
+  const slots = getTodaySlots(schedules)
+  
+  // If no active slots today, shop is closed
+  if (slots.length === 0) return false
 
-  // Filter active (not closed) schedules for today
-  const todaySchedules = schedules.filter((s) => s.is_closed !== true && s.day_of_week === today)
-
-  // If no schedule for today, shop is closed
-  if (todaySchedules.length === 0) return false
-
-  // Check if current time falls within any of today's time slots
-  return todaySchedules.some((s) => isShopOpenInTimeSlot(s.opening_time, s.closing_time))
+  // Check if current time falls within ANY of today's time slots
+  return slots.some((s) => isShopOpenInTimeSlot(s.opening_time, s.closing_time))
 }
 
 // Get current active slot if shop is open
 export function getCurrentActiveSlot(
   schedules: Array<{ day_of_week: number; opening_time: string; closing_time: string; is_closed?: boolean }>,
 ): { opening_time: string; closing_time: string } | null {
-  const today = getCurrentDayOfWeekIST()
+  const slots = getTodaySlots(schedules)
   const currentMinutes = getCurrentTimeInIST()
 
-  const activeSchedules = schedules.filter((s) => s.is_closed !== true)
-  if (activeSchedules.length === 0) return null
-
-  // Check today's time slots
-  const todaySchedules = activeSchedules.filter((s) => s.day_of_week === today)
-
-  for (const schedule of todaySchedules) {
-    const openMinutes = parseTimeToMinutes(schedule.opening_time)
-    const closeMinutes = parseTimeToMinutes(schedule.closing_time)
+  for (const slot of slots) {
+    const openMinutes = parseTimeToMinutes(slot.opening_time)
+    const closeMinutes = parseTimeToMinutes(slot.closing_time)
 
     // Handle closing time past midnight (e.g., 10 PM to 2 AM)
     if (closeMinutes < openMinutes) {
       if (currentMinutes >= openMinutes || currentMinutes < closeMinutes) {
-        return { opening_time: schedule.opening_time, closing_time: schedule.closing_time }
+        return { opening_time: slot.opening_time, closing_time: slot.closing_time }
       }
     } else if (currentMinutes >= openMinutes && currentMinutes < closeMinutes) {
-      return { opening_time: schedule.opening_time, closing_time: schedule.closing_time }
+      return { opening_time: slot.opening_time, closing_time: slot.closing_time }
     }
   }
 

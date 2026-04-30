@@ -11,7 +11,7 @@ import Toast from "./toast"
 import { OfferPopup } from "./offer-popup"
 import type { ShopData, Offer } from "@/types"
 import { getDefaultData } from "@/lib/storage"
-import { isShopOpenToday, getNextOpeningTime, getCurrentTimeInIST, parseTimeToMinutes, getCurrentActiveSlot, getTimeUntilClosing } from "@/lib/schedule-utils"
+import { isShopOpenToday, getNextOpeningTime, getCurrentTimeInIST, parseTimeToMinutes, getCurrentActiveSlot, getTimeUntilClosing, formatTodaySlots, formatTime12Hour } from "@/lib/schedule-utils"
 import { Clock, MapPin } from "lucide-react"
 
 interface PublicPageProps {
@@ -206,20 +206,20 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
 
               {currentActiveSlot ? (
                 <div>
-                  {/* Opening and Closing Times */}
+                  {/* Today's All Time Slots */}
                   <div className="mb-4">
-                    <p className="text-lg font-bold text-foreground">
-                      {currentActiveSlot.opening_time} – {currentActiveSlot.closing_time}
+                    <p className="text-sm font-bold text-foreground">
+                      {formatTodaySlots(schedules)}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">Today&apos;s hours</p>
                   </div>
 
-                  {/* Status Line with Time Until Closing */}
+                  {/* Status Line with Current Slot */}
                   {timeUntilClosing ? (
                     <div className="pt-3 border-t border-gray-200">
                       <p className="text-xs mt-1">
                         <span className="text-green-600 font-semibold">Open</span>
-                        <span className="text-gray-400">{" "}| Closes at {currentActiveSlot.closing_time}</span>
+                        <span className="text-gray-400">{" "}| Closes at {formatTime12Hour(currentActiveSlot.closing_time)}</span>
                       </p>
                     </div>
                   ) : null}
@@ -229,7 +229,8 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
                   {nextOpeningTime ? (
                     <>
                       <p className="text-xs text-red-600 font-semibold mb-2">Closed</p>
-                      <p className="text-sm font-bold text-foreground">Opens at {nextOpeningTime}</p>
+                      <p className="text-sm font-bold text-foreground">Opens at {formatTime12Hour(nextOpeningTime)}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Today&apos;s hours: {formatTodaySlots(schedules)}</p>
                     </>
                   ) : (
                     <p className="text-xs text-muted-foreground">No schedule available</p>
