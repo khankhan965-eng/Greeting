@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { X } from "lucide-react"
+import { X, Bell } from "lucide-react"
 
 interface PushNotificationPopupProps {
   onClose: () => void
@@ -9,6 +9,8 @@ interface PushNotificationPopupProps {
 
 export default function PushNotificationPopup({ onClose }: PushNotificationPopupProps) {
   const [isVisible, setIsVisible] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [swReady, setSwReady] = useState(false)
 
   useEffect(() => {
     // Check if user has already made a decision (within 30 days)
@@ -23,6 +25,35 @@ export default function PushNotificationPopup({ onClose }: PushNotificationPopup
       }
     }
 
+    // Register service worker
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js", { scope: "/" })
+        .then(() => {
+          console.log("[v0] Service Worker registered")
+          // Wait for service worker to be ready
+          return navigator.serviceWorker.ready
+        })
+        .then(() => {
+          console.log("[v0] Service Worker is ready")
+          setSwReady(true)
+          
+          // Show test notification immediately after SW is ready
+          navigator.serviceWorker.ready.then((reg) => {
+            console.log("[v0] Showing immediate test notification")
+            reg.showNotification("RTC Tea Cafe", {
+              body: "Test notification working!",
+              icon: "/icon.png",
+              tag: "test-notification",
+            }).catch((error) => {
+              console.log("[v0] Could not show notification:", error.message)
+            })
+          })
+        })
+        .catch((error) => {
+          console.error("[v0] Service Worker registration failed:", error)
+        })
+    }
+
     // Show popup after 3 seconds on first visit
     const timer = setTimeout(() => {
       setIsVisible(true)
@@ -31,105 +62,62 @@ export default function PushNotificationPopup({ onClose }: PushNotificationPopup
     return () => clearTimeout(timer)
   }, [onClose])
 
-  const handleAllow = async () => {
+  const handleTestNotification = async () => {
+    setIsLoading(true)
     try {
-      console.log("[v0] User clicked Allow for notifications")
-
-      // Step 1: Register service worker first
-      if ("serviceWorker" in navigator) {
-        console.log("[v0] Registering service worker...")
-        const registration = await navigator.serviceWorker.register("/sw.js", {
-          scope: "/",
-        })
-        console.log("[v0] Service Worker registered:", registration)
-
-        // Step 2: Wait for service worker to be ready
+      console.log("[v0] Test notification button clicked")
+      
+      if (!swReady) {
+        console.log("[v0] Waiting for service worker...")
         await navigator.serviceWorker.ready
-        console.log("[v0] Service Worker ready")
+        setSwReady(true)
+      }
 
-        // Step 3: Request notification permission
-        console.log("[v0] Requesting notification permission...")
+      console.log("[v0] Showing test notification from button")
+      await navigator.serviceWorker.ready.then((reg) => {
+        return reg.showNotification("RTC Tea Cafe", {
+          body: "Test notification working!",
+          icon: "/icon.png",
+          tag: "test-notification",
+        })
+      })
+
+      console.log("[v0] Test notification displayed successfully")
+    } catch (error) {
+      console.error("[v0] Error showing test notification:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleAllow = async () => {
+    setIsLoading(true)
+    try {
+      console.log("[v0] User clicked Allow")
+
+      if ("Notification" in window) {
         const permission = await Notification.requestPermission()
         console.log("[v0] Notification permission:", permission)
 
         if (permission === "granted") {
-          console.log("[v0] Permission granted, subscribing to push...")
-
-          // Step 4: Subscribe to push notifications
-          const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-          if (!vapidKey) {
-            console.warn("[v0] VAPID key not configured - notifications may not work in production")
-          }
-
-          let subscription = await registration.pushManager.getSubscription()
-          if (!subscription) {
-            console.log("[v0] Creating new subscription...")
-            const subscriptionConfig: any = {
-              userVisibleOnly: true,
-            }
-
-            if (vapidKey) {
-              subscriptionConfig.applicationServerKey = vapidKey
-            }
-
-            subscription = await registration.pushManager.subscribe(subscriptionConfig)
-          }
-
-          console.log("[v0] Subscription created:", subscription)
-
-          // Step 5: Show test notification immediately
-          console.log("[v0] Showing test notification...")
-          await registration.showNotification("Test Notification", {
-            body: "Notifications working! 🎉",
-            icon: "/icon.svg",
-            badge: "/icon-light-32x32.png",
-            tag: "test-notification",
-          })
-
-          // Step 6: Send subscription to backend (optional)
-          if (subscription.endpoint) {
-            console.log("[v0] Sending subscription to backend...")
-            try {
-              await fetch("/api/push-subscriptions", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  endpoint: subscription.endpoint,
-                  expirationTime: subscription.expirationTime,
-                  keys: {
-                    auth: subscription.getKey?.("auth"),
-                    p256dh: subscription.getKey?.("p256dh"),
-                  },
-                }),
-              }).catch((err) => {
-                console.warn("[v0] Could not save subscription to backend:", err)
-              })
-            } catch (error) {
-              console.warn("[v0] Backend subscription save failed:", error)
-            }
-          }
-
-          // Store decision
+          console.log("[v0] Permission granted, showing test notification")
+          // Show test notification
+          await handleTestNotification()
+          
           localStorage.setItem("push_notification_decision", "allowed")
           localStorage.setItem("push_notification_decision_time", Date.now().toString())
-
-          console.log("[v0] Push notifications setup complete!")
-        } else if (permission === "denied") {
-          console.log("[v0] Permission denied")
+        } else {
           localStorage.setItem("push_notification_decision", "denied")
           localStorage.setItem("push_notification_decision_time", Date.now().toString())
         }
-      } else {
-        console.error("[v0] Service Workers not supported")
       }
     } catch (error) {
-      console.error("[v0] Push notification setup error:", error)
+      console.error("[v0] Error requesting notification permission:", error)
+    } finally {
+      setIsLoading(false)
+      setIsVisible(false)
+      onClose()
     }
-
-    setIsVisible(false)
-    onClose()
   }
 
   const handleNotNow = () => {
@@ -159,19 +147,32 @@ export default function PushNotificationPopup({ onClose }: PushNotificationPopup
           </p>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3">
           <button
-            onClick={handleNotNow}
-            className="flex-1 px-4 py-2 text-sm font-medium text-foreground bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            onClick={handleTestNotification}
+            disabled={isLoading}
+            className="w-full px-4 py-2 text-sm font-medium text-foreground bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center justify-center gap-2"
           >
-            Not Now
+            <Bell size={16} />
+            {isLoading ? "Testing..." : "Test Notification"}
           </button>
-          <button
-            onClick={handleAllow}
-            className="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors"
-          >
-            Allow
-          </button>
+
+          <div className="flex gap-3">
+            <button
+              onClick={handleNotNow}
+              disabled={isLoading}
+              className="flex-1 px-4 py-2 text-sm font-medium text-foreground bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+            >
+              Not Now
+            </button>
+            <button
+              onClick={handleAllow}
+              disabled={isLoading}
+              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+            >
+              {isLoading ? "..." : "Allow"}
+            </button>
+          </div>
         </div>
 
         <p className="text-xs text-muted-foreground mt-4 text-center">
