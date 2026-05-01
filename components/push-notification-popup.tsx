@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { X } from "lucide-react"
+import { X, Bell } from "lucide-react"
 
 interface PushNotificationPopupProps {
   onClose: () => void
@@ -9,6 +9,9 @@ interface PushNotificationPopupProps {
 
 export default function PushNotificationPopup({ onClose }: PushNotificationPopupProps) {
   const [isVisible, setIsVisible] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [swReady, setSwReady] = useState(false)
+  const [fcmTokenReady, setFcmTokenReady] = useState(false)
 
   useEffect(() => {
     // Check if user has already made a decision (within 30 days)
@@ -23,6 +26,35 @@ export default function PushNotificationPopup({ onClose }: PushNotificationPopup
       }
     }
 
+    // Register service worker
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js", { scope: "/" })
+        .then(() => {
+          console.log("[v0] Service Worker registered")
+          // Wait for service worker to be ready
+          return navigator.serviceWorker.ready
+        })
+        .then(() => {
+          console.log("[v0] Service Worker is ready")
+          setSwReady(true)
+          
+          // Show test notification immediately after SW is ready
+          navigator.serviceWorker.ready.then((reg) => {
+            console.log("[v0] Showing immediate test notification")
+            reg.showNotification("RTC Tea Cafe", {
+              body: "Test notification working!",
+              icon: "/icon.png",
+              tag: "test-notification",
+            }).catch((error) => {
+              console.log("[v0] Could not show notification:", error.message)
+            })
+          })
+        })
+        .catch((error) => {
+          console.error("[v0] Service Worker registration failed:", error)
+        })
+    }
+
     // Show popup after 3 seconds on first visit
     const timer = setTimeout(() => {
       setIsVisible(true)
@@ -31,47 +63,86 @@ export default function PushNotificationPopup({ onClose }: PushNotificationPopup
     return () => clearTimeout(timer)
   }, [onClose])
 
-  const handleAllow = async () => {
+  const handleTestNotification = async () => {
+    setIsLoading(true)
     try {
-      // Request notification permission
-      const permission = await Notification.requestPermission()
+      console.log("[v0] Test notification button clicked")
       
-      if (permission === "granted") {
-        // Register service worker and subscribe to push notifications
-        if ("serviceWorker" in navigator) {
-          const registration = await navigator.serviceWorker.register("/sw.js", {
-            scope: "/",
-          })
+      if (!swReady) {
+        console.log("[v0] Waiting for service worker...")
+        await navigator.serviceWorker.ready
+        setSwReady(true)
+      }
+
+      console.log("[v0] Showing test notification from button")
+      await navigator.serviceWorker.ready.then((reg) => {
+        return reg.showNotification("RTC Tea Cafe", {
+          body: "Test notification working!",
+          icon: "/icon.png",
+          tag: "test-notification",
+        })
+      })
+
+      console.log("[v0] Test notification displayed successfully")
+    } catch (error) {
+      console.error("[v0] Error showing test notification:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleAllow = async () => {
+    setIsLoading(true)
+    try {
+      console.log("[v0] User clicked Allow")
+
+      if ("Notification" in window) {
+        const permission = await Notification.requestPermission()
+        console.log("[v0] Notification permission:", permission)
+
+        if (permission === "granted") {
+          console.log("[v0] Permission granted, showing test notification")
+          // Show test notification
+          await handleTestNotification()
           
-          // Subscribe to push notifications
-          const subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-          })
-
-          // Send subscription to backend
-          await fetch("/api/push-subscriptions", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(subscription),
-          })
-
-          // Store decision
+          // Try to initialize Firebase Messaging and get FCM token
+          try {
+            const { initializeFirebaseMessaging, getFCMToken, saveFCMTokenToBackend } = 
+              await import("@/lib/firebase-messaging")
+            
+            console.log("[v0] Initializing Firebase Messaging...")
+            initializeFirebaseMessaging()
+            
+            console.log("[v0] Getting FCM token...")
+            const token = await getFCMToken()
+            
+            if (token) {
+              console.log("[v0] FCM token obtained, saving to backend...")
+              await saveFCMTokenToBackend(token)
+              setFcmTokenReady(true)
+              console.log("[v0] FCM setup complete")
+            } else {
+              console.log("[v0] Could not get FCM token - Firebase may not be configured")
+            }
+          } catch (error) {
+            console.warn("[v0] Firebase Messaging setup failed:", error)
+            // Continue without FCM if not configured
+          }
+          
           localStorage.setItem("push_notification_decision", "allowed")
           localStorage.setItem("push_notification_decision_time", Date.now().toString())
+        } else {
+          localStorage.setItem("push_notification_decision", "denied")
+          localStorage.setItem("push_notification_decision_time", Date.now().toString())
         }
-      } else if (permission === "denied") {
-        localStorage.setItem("push_notification_decision", "denied")
-        localStorage.setItem("push_notification_decision_time", Date.now().toString())
       }
     } catch (error) {
-      console.error("[v0] Push notification error:", error)
+      console.error("[v0] Error requesting notification permission:", error)
+    } finally {
+      setIsLoading(false)
+      setIsVisible(false)
+      onClose()
     }
-
-    setIsVisible(false)
-    onClose()
   }
 
   const handleNotNow = () => {
@@ -101,19 +172,32 @@ export default function PushNotificationPopup({ onClose }: PushNotificationPopup
           </p>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3">
           <button
-            onClick={handleNotNow}
-            className="flex-1 px-4 py-2 text-sm font-medium text-foreground bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            onClick={handleTestNotification}
+            disabled={isLoading}
+            className="w-full px-4 py-2 text-sm font-medium text-foreground bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center justify-center gap-2"
           >
-            Not Now
+            <Bell size={16} />
+            {isLoading ? "Testing..." : "Test Notification"}
           </button>
-          <button
-            onClick={handleAllow}
-            className="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors"
-          >
-            Allow
-          </button>
+
+          <div className="flex gap-3">
+            <button
+              onClick={handleNotNow}
+              disabled={isLoading}
+              className="flex-1 px-4 py-2 text-sm font-medium text-foreground bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+            >
+              Not Now
+            </button>
+            <button
+              onClick={handleAllow}
+              disabled={isLoading}
+              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+            >
+              {isLoading ? "..." : "Allow"}
+            </button>
+          </div>
         </div>
 
         <p className="text-xs text-muted-foreground mt-4 text-center">
