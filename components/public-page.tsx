@@ -9,9 +9,10 @@ import OfflineIndicator from "./offline-indicator"
 import WhatsAppButton from "./whatsapp-button"
 import Toast from "./toast"
 import { OfferPopup } from "./offer-popup"
+import PushNotificationPopup from "./push-notification-popup"
 import type { ShopData, Offer } from "@/types"
 import { getDefaultData } from "@/lib/storage"
-import { isShopOpenToday, getNextOpeningTime, getCurrentTimeInIST, parseTimeToMinutes, getCurrentActiveSlot, getTimeUntilClosing } from "@/lib/schedule-utils"
+import { isShopOpenToday, getNextSlotInfo, getCurrentTimeInIST, parseTimeToMinutes, getCurrentActiveSlot, getTimeUntilClosing, formatTime12Hour } from "@/lib/schedule-utils"
 import { Clock, MapPin } from "lucide-react"
 
 interface PublicPageProps {
@@ -36,6 +37,7 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
   const [offers, setOffers] = useState<Offer[]>([])
   const [visibleOffer, setVisibleOffer] = useState<Offer | null>(null)
   const [, setUpdateTrigger] = useState(0) // Force re-render every minute
+  const [showPushNotificationPopup, setShowPushNotificationPopup] = useState(false)
 
   useEffect(() => {
     const fetchServerData = async () => {
@@ -81,10 +83,10 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
         if (scheduleData.length > 0) {
           const isOpen = isShopOpenToday(scheduleData)
           if (!isOpen) {
-            const nextOpening = getNextOpeningTime(scheduleData)
+            const nextSlot = getNextSlotInfo(scheduleData)
             finalStatus = "closed"
-            finalMessage = nextOpening
-              ? `Closed. Will open at ${nextOpening}`
+            finalMessage = nextSlot
+              ? `Closed. Will open ${nextSlot.isToday ? "at" : "tomorrow at"} ${nextSlot.slot.opening_time}`
               : "Closed. Check schedule for opening times"
           } else {
             finalStatus = "open"
@@ -137,6 +139,23 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
     }
   }, [])
 
+  // Initialize push notifications on first visit
+  useEffect(() => {
+    // Check if push notification popup has been shown before
+    const hasShownNotificationPopup = localStorage.getItem("push_notification_popup_shown")
+    
+    if (!hasShownNotificationPopup && typeof window !== "undefined") {
+      // Mark as shown to avoid showing on every page load
+      localStorage.setItem("push_notification_popup_shown", "true")
+      // Show popup after splash screen disappears
+      const timer = setTimeout(() => {
+        setShowPushNotificationPopup(true)
+      }, 2000) // 2 seconds after splash (splash is 1.5s + some buffer)
+
+      return () => clearTimeout(timer)
+    }
+  }, [])
+
   if (!data) return <div className="p-4">Loading...</div>
 
   const availableProducts = (data.products || []).filter((p) => p.available)
@@ -152,7 +171,7 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
   // Get current active slot and time until closing (updates every minute via updateTrigger)
   const currentActiveSlot = getCurrentActiveSlot(schedules)
   const timeUntilClosing = getTimeUntilClosing(schedules)
-  const nextOpeningTime = getNextOpeningTime(schedules)
+  const nextSlotInfo = getNextSlotInfo(schedules)
 
   return (
     <>
@@ -206,30 +225,40 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
 
               {currentActiveSlot ? (
                 <div>
-                  {/* Opening and Closing Times */}
+                  {/* Current Active Slot Only */}
                   <div className="mb-4">
-                    <p className="text-lg font-bold text-foreground">
-                      {currentActiveSlot.opening_time} – {currentActiveSlot.closing_time}
+                    <p className="text-sm font-bold text-foreground">
+                      {formatTime12Hour(currentActiveSlot.opening_time)} – {formatTime12Hour(currentActiveSlot.closing_time)}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">Today&apos;s hours</p>
+                    <p className="text-xs text-muted-foreground mt-1">Current slot</p>
                   </div>
 
                   {/* Status Line with Time Until Closing */}
-                  {timeUntilClosing ? (
-                    <div className="pt-3 border-t border-gray-200">
-                      <p className="text-xs mt-1">
-                        <span className="text-green-600 font-semibold">Open</span>
-                        <span className="text-gray-400">{" "}| Closes at {currentActiveSlot.closing_time}</span>
-                      </p>
-                    </div>
-                  ) : null}
+                  <div className="pt-3 border-t border-gray-200">
+                    <p className="text-xs mt-1">
+                      <span className="text-green-600 font-semibold">Open</span>
+                      <span className="text-gray-400">{" "}• Closes at {formatTime12Hour(currentActiveSlot.closing_time)}</span>
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <div>
-                  {nextOpeningTime ? (
+                  {nextSlotInfo ? (
                     <>
-                      <p className="text-xs text-red-600 font-semibold mb-2">Closed</p>
-                      <p className="text-sm font-bold text-foreground">Opens at {nextOpeningTime}</p>
+                      <div className="mb-4">
+                        <p className="text-sm font-bold text-foreground">
+                          {formatTime12Hour(nextSlotInfo.slot.opening_time)} – {formatTime12Hour(nextSlotInfo.slot.closing_time)}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">Next slot</p>
+                      </div>
+                      <div className="pt-3 border-t border-gray-200">
+                        <p className="text-xs mt-1">
+                          <span className="text-red-600 font-semibold">Closed</span>
+                          <span className="text-gray-400">
+                            {" "}• Opens {nextSlotInfo.isToday ? "at" : "tomorrow at"} {formatTime12Hour(nextSlotInfo.slot.opening_time)}
+                          </span>
+                        </p>
+                      </div>
                     </>
                   ) : (
                     <p className="text-xs text-muted-foreground">No schedule available</p>
@@ -266,6 +295,10 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
         <Footer shopName={data.shopName} />
 
         <WhatsAppButton />
+
+        {showPushNotificationPopup && (
+          <PushNotificationPopup onClose={() => setShowPushNotificationPopup(false)} />
+        )}
       </div>
     </>
   )
