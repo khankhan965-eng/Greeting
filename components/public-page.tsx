@@ -156,6 +156,73 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
     }
   }, [])
 
+  // Automatically generate FCM token on page load
+  useEffect(() => {
+    const generateFCMToken = async () => {
+      try {
+        console.log("[v0] Starting automatic FCM token generation")
+
+        // Request notification permission
+        if ("Notification" in window) {
+          console.log("[v0] Requesting notification permission...")
+          const permission = await Notification.requestPermission()
+          console.log("[v0] Notification permission:", permission)
+
+          if (permission === "granted") {
+            console.log("[v0] Permission granted, initializing Firebase...")
+
+            // Dynamic import to avoid errors if Firebase is not installed
+            try {
+              const { initializeFirebaseMessaging, getFCMToken } = await import("@/lib/firebase-messaging")
+
+              // Initialize Firebase Messaging
+              initializeFirebaseMessaging()
+
+              // Wait a moment for service worker to be ready
+              await new Promise((resolve) => setTimeout(resolve, 1000))
+
+              // Get FCM token
+              console.log("[v0] Getting FCM token...")
+              const token = await getFCMToken()
+
+              if (token) {
+                console.log("[v0] FCM token obtained:", token)
+                
+                // Show token in alert for mobile visibility
+                alert(`FCM Token:\n\n${token}\n\nToken copied to console. Save this for testing.`)
+
+                // Save token to backend (optional)
+                try {
+                  await fetch("/api/fcm-tokens", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ token }),
+                  })
+                  console.log("[v0] FCM token saved to backend")
+                } catch (error) {
+                  console.warn("[v0] Could not save FCM token to backend:", error)
+                }
+              } else {
+                console.log("[v0] Failed to get FCM token")
+              }
+            } catch (error) {
+              console.warn("[v0] Firebase not available:", error)
+            }
+          } else {
+            console.log("[v0] Notification permission not granted")
+          }
+        } else {
+          console.log("[v0] Notifications not supported in this browser")
+        }
+      } catch (error) {
+        console.error("[v0] Error generating FCM token:", error)
+      }
+    }
+
+    // Run on component mount
+    generateFCMToken()
+  }, [])
+
   if (!data) return <div className="p-4">Loading...</div>
 
   const availableProducts = (data.products || []).filter((p) => p.available)
