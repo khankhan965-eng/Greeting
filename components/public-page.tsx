@@ -10,6 +10,7 @@ import WhatsAppButton from "./whatsapp-button"
 import Toast from "./toast"
 import { OfferPopup } from "./offer-popup"
 import PushNotificationPopup from "./push-notification-popup"
+import TestNotificationButton from "./test-notification-button"
 import type { ShopData, Offer } from "@/types"
 import { getDefaultData } from "@/lib/storage"
 import { isShopOpenToday, getNextSlotInfo, getCurrentTimeInIST, parseTimeToMinutes, getCurrentActiveSlot, getTimeUntilClosing, formatTime12Hour } from "@/lib/schedule-utils"
@@ -295,6 +296,8 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
         <Footer shopName={data.shopName} />
 
         <WhatsAppButton />
+
+        <TestNotificationButton />
 
         {showPushNotificationPopup && (
           <PushNotificationPopup onClose={() => setShowPushNotificationPopup(false)} />
