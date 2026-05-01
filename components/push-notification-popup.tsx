@@ -11,6 +11,7 @@ export default function PushNotificationPopup({ onClose }: PushNotificationPopup
   const [isVisible, setIsVisible] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [swReady, setSwReady] = useState(false)
+  const [fcmTokenReady, setFcmTokenReady] = useState(false)
 
   useEffect(() => {
     // Check if user has already made a decision (within 30 days)
@@ -103,6 +104,30 @@ export default function PushNotificationPopup({ onClose }: PushNotificationPopup
           console.log("[v0] Permission granted, showing test notification")
           // Show test notification
           await handleTestNotification()
+          
+          // Try to initialize Firebase Messaging and get FCM token
+          try {
+            const { initializeFirebaseMessaging, getFCMToken, saveFCMTokenToBackend } = 
+              await import("@/lib/firebase-messaging")
+            
+            console.log("[v0] Initializing Firebase Messaging...")
+            initializeFirebaseMessaging()
+            
+            console.log("[v0] Getting FCM token...")
+            const token = await getFCMToken()
+            
+            if (token) {
+              console.log("[v0] FCM token obtained, saving to backend...")
+              await saveFCMTokenToBackend(token)
+              setFcmTokenReady(true)
+              console.log("[v0] FCM setup complete")
+            } else {
+              console.log("[v0] Could not get FCM token - Firebase may not be configured")
+            }
+          } catch (error) {
+            console.warn("[v0] Firebase Messaging setup failed:", error)
+            // Continue without FCM if not configured
+          }
           
           localStorage.setItem("push_notification_decision", "allowed")
           localStorage.setItem("push_notification_decision_time", Date.now().toString())
