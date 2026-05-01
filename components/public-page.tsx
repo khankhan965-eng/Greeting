@@ -9,6 +9,7 @@ import OfflineIndicator from "./offline-indicator"
 import WhatsAppButton from "./whatsapp-button"
 import Toast from "./toast"
 import { OfferPopup } from "./offer-popup"
+import PushNotificationPopup from "./push-notification-popup"
 import type { ShopData, Offer } from "@/types"
 import { getDefaultData } from "@/lib/storage"
 import { isShopOpenToday, getNextSlotInfo, getCurrentTimeInIST, parseTimeToMinutes, getCurrentActiveSlot, getTimeUntilClosing, formatTime12Hour } from "@/lib/schedule-utils"
@@ -36,6 +37,7 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
   const [offers, setOffers] = useState<Offer[]>([])
   const [visibleOffer, setVisibleOffer] = useState<Offer | null>(null)
   const [, setUpdateTrigger] = useState(0) // Force re-render every minute
+  const [showPushNotificationPopup, setShowPushNotificationPopup] = useState(false)
 
   useEffect(() => {
     const fetchServerData = async () => {
@@ -134,6 +136,23 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
     return () => {
       clearTimeout(splashTimer)
       clearInterval(updateInterval)
+    }
+  }, [])
+
+  // Initialize push notifications on first visit
+  useEffect(() => {
+    // Check if push notification popup has been shown before
+    const hasShownNotificationPopup = localStorage.getItem("push_notification_popup_shown")
+    
+    if (!hasShownNotificationPopup && typeof window !== "undefined") {
+      // Mark as shown to avoid showing on every page load
+      localStorage.setItem("push_notification_popup_shown", "true")
+      // Show popup after splash screen disappears
+      const timer = setTimeout(() => {
+        setShowPushNotificationPopup(true)
+      }, 2000) // 2 seconds after splash (splash is 1.5s + some buffer)
+
+      return () => clearTimeout(timer)
     }
   }, [])
 
@@ -276,6 +295,10 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
         <Footer shopName={data.shopName} />
 
         <WhatsAppButton />
+
+        {showPushNotificationPopup && (
+          <PushNotificationPopup onClose={() => setShowPushNotificationPopup(false)} />
+        )}
       </div>
     </>
   )
