@@ -10,6 +10,7 @@ const STATIC_ASSETS = [
 
 // Install event - cache static assets
 self.addEventListener("install", (event) => {
+  console.log("[v0] Service Worker installing...")
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(STATIC_ASSETS).catch(() => {
@@ -19,10 +20,12 @@ self.addEventListener("install", (event) => {
     })
   )
   self.skipWaiting()
+  console.log("[v0] Service Worker installed")
 })
 
 // Activate event - clean up old caches
 self.addEventListener("activate", (event) => {
+  console.log("[v0] Service Worker activating...")
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -35,6 +38,7 @@ self.addEventListener("activate", (event) => {
     })
   )
   self.clients.claim()
+  console.log("[v0] Service Worker activated")
 })
 
 // Fetch event - serve from cache, fallback to network
@@ -71,6 +75,8 @@ self.addEventListener("fetch", (event) => {
 
 // Push event - handle incoming push notifications
 self.addEventListener("push", (event) => {
+  console.log("[v0] Push notification received:", event)
+
   let notificationData = {
     title: "RTC Cafe - New Update!",
     body: "Check out our latest offers",
@@ -82,14 +88,20 @@ self.addEventListener("push", (event) => {
 
   if (event.data) {
     try {
+      const jsonData = event.data.json()
+      console.log("[v0] Push data parsed:", jsonData)
       notificationData = {
         ...notificationData,
-        ...event.data.json(),
+        ...jsonData,
       }
     } catch (e) {
-      notificationData.body = event.data.text()
+      const textData = event.data.text()
+      console.log("[v0] Push data (text):", textData)
+      notificationData.body = textData
     }
   }
+
+  console.log("[v0] Showing notification with data:", notificationData)
 
   event.waitUntil(
     self.registration.showNotification(notificationData.title, {
@@ -101,29 +113,37 @@ self.addEventListener("push", (event) => {
       data: {
         url: notificationData.url || "/",
       },
+    }).catch((error) => {
+      console.error("[v0] Error showing notification:", error)
     })
   )
 })
 
 // Notification click event - handle notification clicks
 self.addEventListener("notificationclick", (event) => {
+  console.log("[v0] Notification clicked:", event)
   event.notification.close()
 
   const url = event.notification.data?.url || "/"
 
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      console.log("[v0] Matched clients:", clientList.length)
       // Check if window is already open
       for (let i = 0; i < clientList.length; i++) {
         const client = clientList[i]
         if (client.url === url && "focus" in client) {
+          console.log("[v0] Focusing existing client")
           return client.focus()
         }
       }
       // If not open, open new window
       if (clients.openWindow) {
+        console.log("[v0] Opening new window with URL:", url)
         return clients.openWindow(url)
       }
+    }).catch((error) => {
+      console.error("[v0] Error handling notification click:", error)
     })
   )
 })

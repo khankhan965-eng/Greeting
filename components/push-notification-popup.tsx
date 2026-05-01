@@ -33,41 +33,99 @@ export default function PushNotificationPopup({ onClose }: PushNotificationPopup
 
   const handleAllow = async () => {
     try {
-      // Request notification permission
-      const permission = await Notification.requestPermission()
-      
-      if (permission === "granted") {
-        // Register service worker and subscribe to push notifications
-        if ("serviceWorker" in navigator) {
-          const registration = await navigator.serviceWorker.register("/sw.js", {
-            scope: "/",
-          })
-          
-          // Subscribe to push notifications
-          const subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+      console.log("[v0] User clicked Allow for notifications")
+
+      // Step 1: Register service worker first
+      if ("serviceWorker" in navigator) {
+        console.log("[v0] Registering service worker...")
+        const registration = await navigator.serviceWorker.register("/sw.js", {
+          scope: "/",
+        })
+        console.log("[v0] Service Worker registered:", registration)
+
+        // Step 2: Wait for service worker to be ready
+        await navigator.serviceWorker.ready
+        console.log("[v0] Service Worker ready")
+
+        // Step 3: Request notification permission
+        console.log("[v0] Requesting notification permission...")
+        const permission = await Notification.requestPermission()
+        console.log("[v0] Notification permission:", permission)
+
+        if (permission === "granted") {
+          console.log("[v0] Permission granted, subscribing to push...")
+
+          // Step 4: Subscribe to push notifications
+          const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+          if (!vapidKey) {
+            console.warn("[v0] VAPID key not configured - notifications may not work in production")
+          }
+
+          let subscription = await registration.pushManager.getSubscription()
+          if (!subscription) {
+            console.log("[v0] Creating new subscription...")
+            const subscriptionConfig: any = {
+              userVisibleOnly: true,
+            }
+
+            if (vapidKey) {
+              subscriptionConfig.applicationServerKey = vapidKey
+            }
+
+            subscription = await registration.pushManager.subscribe(subscriptionConfig)
+          }
+
+          console.log("[v0] Subscription created:", subscription)
+
+          // Step 5: Show test notification immediately
+          console.log("[v0] Showing test notification...")
+          await registration.showNotification("Test Notification", {
+            body: "Notifications working! 🎉",
+            icon: "/icon.svg",
+            badge: "/icon-light-32x32.png",
+            tag: "test-notification",
           })
 
-          // Send subscription to backend
-          await fetch("/api/push-subscriptions", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(subscription),
-          })
+          // Step 6: Send subscription to backend (optional)
+          if (subscription.endpoint) {
+            console.log("[v0] Sending subscription to backend...")
+            try {
+              await fetch("/api/push-subscriptions", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  endpoint: subscription.endpoint,
+                  expirationTime: subscription.expirationTime,
+                  keys: {
+                    auth: subscription.getKey?.("auth"),
+                    p256dh: subscription.getKey?.("p256dh"),
+                  },
+                }),
+              }).catch((err) => {
+                console.warn("[v0] Could not save subscription to backend:", err)
+              })
+            } catch (error) {
+              console.warn("[v0] Backend subscription save failed:", error)
+            }
+          }
 
           // Store decision
           localStorage.setItem("push_notification_decision", "allowed")
           localStorage.setItem("push_notification_decision_time", Date.now().toString())
+
+          console.log("[v0] Push notifications setup complete!")
+        } else if (permission === "denied") {
+          console.log("[v0] Permission denied")
+          localStorage.setItem("push_notification_decision", "denied")
+          localStorage.setItem("push_notification_decision_time", Date.now().toString())
         }
-      } else if (permission === "denied") {
-        localStorage.setItem("push_notification_decision", "denied")
-        localStorage.setItem("push_notification_decision_time", Date.now().toString())
+      } else {
+        console.error("[v0] Service Workers not supported")
       }
     } catch (error) {
-      console.error("[v0] Push notification error:", error)
+      console.error("[v0] Push notification setup error:", error)
     }
 
     setIsVisible(false)
