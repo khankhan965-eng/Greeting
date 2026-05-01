@@ -42,10 +42,10 @@ export function getPushPermissionStatus(): NotificationPermission {
 /**
  * Register service worker for push notifications
  */
-export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
+export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | undefined> {
   if (!isPushNotificationsSupported()) {
     console.warn("[v0] Push notifications not supported")
-    return null
+    return undefined
   }
 
   try {
@@ -56,7 +56,7 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
     return registration
   } catch (error) {
     console.error("[v0] Service Worker registration failed:", error)
-    return null
+    return undefined
   }
 }
 
@@ -85,17 +85,25 @@ export async function subscribeToPushNotifications(vapidPublicKey: string): Prom
 
     // If no subscription exists, create one
     if (!subscription) {
+      const vapidArray = urlBase64ToUint8Array(vapidPublicKey)
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+        applicationServerKey: vapidArray as BufferSource,
       })
     }
 
     // Convert subscription to a serializable format
+    const authKey = subscription.getKey("auth")
+    const p256dhKey = subscription.getKey("p256dh")
+    
+    if (!authKey || !p256dhKey) {
+      throw new Error("Failed to get subscription keys")
+    }
+
     const subscriptionData: PushSubscription = {
       endpoint: subscription.endpoint,
-      auth: arrayBufferToBase64(subscription.getKey("auth") as ArrayBuffer),
-      p256dh: arrayBufferToBase64(subscription.getKey("p256dh") as ArrayBuffer),
+      auth: arrayBufferToBase64(authKey),
+      p256dh: arrayBufferToBase64(p256dhKey),
     }
 
     console.log("[v0] Subscribed to push notifications")
@@ -176,8 +184,17 @@ export function urlBase64ToUint8Array(base64String: string): Uint8Array {
 /**
  * Convert ArrayBuffer to Base64 string
  */
-export function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer)
+export function arrayBufferToBase64(buffer: ArrayBuffer | ArrayBufferView): string {
+  let bytes: Uint8Array
+  
+  if (buffer instanceof ArrayBuffer) {
+    bytes = new Uint8Array(buffer)
+  } else if (buffer instanceof Uint8Array) {
+    bytes = buffer
+  } else {
+    bytes = new Uint8Array((buffer as unknown) as ArrayBuffer)
+  }
+  
   let binary = ""
   for (let i = 0; i < bytes.byteLength; i++) {
     binary += String.fromCharCode(bytes[i])
