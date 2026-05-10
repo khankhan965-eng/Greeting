@@ -55,14 +55,15 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
         }
 
         const [statusResponse, scheduleResponse, offersResponse] = await Promise.all([
-          fetch("/api/status"),
-          fetch("/api/schedule"),
-          fetch("/api/offers"),
+          fetch("/api/status", { cache: "no-store" }),
+          fetch("/api/schedule", { cache: "no-store" }),
+          fetch("/api/offers", { cache: "no-store" }),
         ])
 
         let statusData = { status: "open" as const, closeMessage: "" }
         let scheduleData: TimeSlot[] = []
         let offersData: Offer[] = []
+        let serverStatus = { isOpen: false, currentSlot: null, nextSlot: null }
 
         if (statusResponse.ok) {
           statusData = await statusResponse.json()
@@ -71,22 +72,29 @@ export default function PublicPage({ onAdminClick }: PublicPageProps) {
         if (scheduleResponse.ok) {
           const data = await scheduleResponse.json()
           scheduleData = data.schedules || []
+          serverStatus = data.status || { isOpen: false, currentSlot: null, nextSlot: null }
         }
 
         if (offersResponse.ok) {
           offersData = await offersResponse.json()
         }
 
-        let finalStatus: "open" | "closed" = (statusData.status === "open" || statusData.status === "closed") ? statusData.status : "open"
+        // Use server-calculated status from IST timezone (consistent for all users)
+        let finalStatus: "open" | "closed" = "open"
+        if (statusData.status === "closed") {
+          finalStatus = "closed"
+        } else {
+          finalStatus = "open"
+        }
         let finalMessage = statusData.closeMessage
-        
-        if (scheduleData.length > 0) {
-          const isOpen = isShopOpenToday(scheduleData)
-          if (!isOpen) {
-            const nextSlot = getNextSlotInfo(scheduleData)
+
+        // If schedule is available, use server-calculated status
+        if (scheduleData.length > 0 && serverStatus) {
+          if (!serverStatus.isOpen) {
             finalStatus = "closed"
-            finalMessage = nextSlot
-              ? `Closed. Will open ${nextSlot.isToday ? "at" : "tomorrow at"} ${nextSlot.slot.opening_time}`
+            const nextSlotData = serverStatus.nextSlot as any
+            finalMessage = nextSlotData
+              ? `Closed. Will open ${nextSlotData.isToday ? "at" : "tomorrow at"} ${nextSlotData.slot.opening_time}`
               : "Closed. Check schedule for opening times"
           } else {
             finalStatus = "open"
