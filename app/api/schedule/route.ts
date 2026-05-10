@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { type NextRequest, NextResponse } from "next/server"
+import { isShopOpenTodayServer, getCurrentActiveSlotServer, getNextSlotInfoServer } from "@/lib/timezone-server"
 
 export async function GET() {
   try {
@@ -13,10 +14,38 @@ export async function GET() {
 
     if (error) throw error
 
-    return NextResponse.json({ schedules: schedules || [] })
+    // Calculate status server-side
+    const isOpen = schedules ? isShopOpenTodayServer(schedules) : false
+    const currentSlot = schedules ? getCurrentActiveSlotServer(schedules) : null
+    const nextSlot = schedules ? getNextSlotInfoServer(schedules) : null
+
+    return NextResponse.json(
+      {
+        schedules: schedules || [],
+        status: {
+          isOpen,
+          currentSlot,
+          nextSlot,
+        },
+      },
+      {
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "CDN-Cache-Control": "no-cache",
+        },
+      },
+    )
   } catch (error) {
     console.error("Error fetching schedule:", error)
-    return NextResponse.json({ error: "Failed to fetch schedule" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Failed to fetch schedule", schedules: [], status: { isOpen: false } },
+      {
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "CDN-Cache-Control": "no-cache",
+        },
+      },
+    )
   }
 }
 
